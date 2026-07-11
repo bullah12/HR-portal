@@ -296,6 +296,9 @@ model Interview {
   slotStart DateTime
   slotEnd   DateTime
   videoLink String?
+  /// Provider event id (Microsoft 365 Graph) so cancellations can remove
+  /// the calendar invite. Null for interviews created before calendar sync.
+  calendarEventId String?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 

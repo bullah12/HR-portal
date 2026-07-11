@@ -55,6 +55,39 @@ const RULES: RouteRule[] = [
       POST: RECRUITING_WRITE,
     },
   },
+  {
+    pattern: /^\/api\/interviews$/,
+    methods: {
+      // Panel-scoped filtering for HMs/interviewers happens in the handler.
+      GET: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'INTERVIEWER'],
+      POST: RECRUITING_WRITE,
+    },
+  },
+  {
+    pattern: /^\/api\/interviews\/[^/]+\/cancel$/,
+    methods: {
+      POST: RECRUITING_WRITE,
+    },
+  },
+  {
+    pattern: /^\/api\/offers$/,
+    methods: {
+      GET: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'FINANCE_APPROVER'],
+      POST: RECRUITING_WRITE,
+    },
+  },
+  {
+    pattern: /^\/api\/offers\/[^/]+$/,
+    methods: {
+      GET: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'FINANCE_APPROVER'],
+    },
+  },
+  {
+    pattern: /^\/api\/offers\/[^/]+\/pdf$/,
+    methods: {
+      GET: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'FINANCE_APPROVER'],
+    },
+  },
 ];
 
 // Page routes (order matters: more specific patterns first). Unauthenticated
