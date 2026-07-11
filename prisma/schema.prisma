@@ -117,6 +117,27 @@ enum OnboardingTaskStatus {
   BLOCKED
 }
 
+enum OnboardingTaskCategory {
+  DOCUMENTS
+  IT_PROVISIONING
+  TRAINING
+  OTHER
+}
+
+enum OnboardingDocumentStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+/// Candidate's own accept/decline decision on an offer — separate from the
+/// e-signature status, which stays owned by DocuSign in Phase 3.
+enum CandidateDecision {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
 // ---------------------------------------------------------------------------
 // Models
 // ---------------------------------------------------------------------------
@@ -341,6 +362,10 @@ model Offer {
   startDate       DateTime
   approvalState   OfferApprovalState @default(DRAFT)
   signatureStatus SignatureStatus    @default(NOT_SENT)
+  /// Secret in the candidate's offer link (/offers?offer=<id>&token=<this>).
+  accessToken     String             @unique @default(dbgenerated("gen_random_uuid()::text"))
+  candidateDecision   CandidateDecision @default(PENDING)
+  candidateDecidedAt  DateTime?
   expiresAt       DateTime
   signedAt        DateTime?
   createdAt       DateTime           @default(now())
@@ -379,13 +404,17 @@ model OnboardingPlan {
   startDate         DateTime
   checklistTemplate String
   progressPercent   Int      @default(0)
+  /// Secret in the candidate's public onboarding link (/onboarding/<this>).
+  /// No portal login required (candidate accounts arrive with Auth0 later).
+  accessToken       String   @unique @default(dbgenerated("gen_random_uuid()::text"))
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   applicationId String      @unique
   application   Application @relation(fields: [applicationId], references: [id])
 
-  tasks OnboardingTask[]
+  tasks     OnboardingTask[]
+  documents OnboardingDocument[]
 
   @@map("onboarding_plans")
 }
@@ -393,23 +422,49 @@ model OnboardingPlan {
 /// Single checklist item: contract upload, right-to-work, IT provisioning,
 /// buddy assignment, etc. `docRef` is an S3 key when a document is collected.
 model OnboardingTask {
-  id          String               @id @default(cuid())
+  id          String                 @id @default(cuid())
   title       String
-  status      OnboardingTaskStatus @default(PENDING)
+  category    OnboardingTaskCategory @default(OTHER)
+  status      OnboardingTaskStatus   @default(PENDING)
+  /// True when completing the task means uploading a document.
+  requiresDocument Boolean           @default(false)
   dueDate     DateTime
   docRef      String?
   completedAt DateTime?
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
 
   planId  String
   plan    OnboardingPlan @relation(fields: [planId], references: [id])
   ownerId String
   owner   User           @relation("TaskOwner", fields: [ownerId], references: [id])
 
+  documents OnboardingDocument[]
+
   @@index([planId])
   @@index([ownerId, status])
   @@map("onboarding_tasks")
+}
+
+/// Metadata for a document uploaded during onboarding (employee data form,
+/// tax forms, NDA, …). The file itself lives in storage; only the path is
+/// kept here, mirroring CVDocument.
+model OnboardingDocument {
+  id         String                   @id @default(cuid())
+  name       String
+  fileRef    String
+  mimeType   String
+  sizeBytes  Int
+  status     OnboardingDocumentStatus @default(PENDING_REVIEW)
+  uploadedAt DateTime                 @default(now())
+
+  planId String
+  plan   OnboardingPlan @relation(fields: [planId], references: [id])
+  taskId String?
+  task   OnboardingTask? @relation(fields: [taskId], references: [id])
+
+  @@index([planId])
+  @@map("onboarding_documents")
 }
 
 /// GDPR consent trail per candidate. A withdrawn or expired record is never
