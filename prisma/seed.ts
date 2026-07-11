@@ -12,8 +12,15 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
+
+// Development-only credentials for the seeded staff accounts.
+const DEMO_PASSWORDS = {
+  recruiter: 'Recruit3r!Demo',
+  hiringManager: 'Hiring!Demo42',
+} as const;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -52,6 +59,7 @@ async function main(): Promise<void> {
   const recruiter = await prisma.user.create({
     data: {
       email: 'sofia.lindqvist@acme-corp.example',
+      passwordHash: bcrypt.hashSync(DEMO_PASSWORDS.recruiter, 12),
       name: 'Sofia Lindqvist',
       role: 'RECRUITER',
       department: 'People & Culture',
@@ -62,6 +70,7 @@ async function main(): Promise<void> {
   const hiringManager = await prisma.user.create({
     data: {
       email: 'marcus.weber@acme-corp.example',
+      passwordHash: bcrypt.hashSync(DEMO_PASSWORDS.hiringManager, 12),
       name: 'Marcus Weber',
       role: 'HIRING_MANAGER',
       department: 'Engineering',
