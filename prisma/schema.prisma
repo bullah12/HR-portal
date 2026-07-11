@@ -215,6 +215,7 @@ model Application {
 
   cvDocuments    CVDocument[]
   parseResult    ParseResult?
+  candidateScore CandidateScore?
   interviews     Interview[]
   offer          Offer?
   onboardingPlan OnboardingPlan?
@@ -256,6 +257,36 @@ model ParseResult {
   @@map("parse_results")
 }
 
+/// Deterministic ATS score for an application (Phase 2). One row per
+/// application, upserted on re-parse so scoring stays idempotent. Ranked
+/// shortlists per job are ordered by totalScore. Decision-support only —
+/// stage changes remain human-recorded.
+model CandidateScore {
+  id                String   @id @default(cuid())
+  totalScore        Int
+  mustHavePoints    Int
+  niceToHavePoints  Int
+  experiencePoints  Int
+  locationPoints    Int
+  /// True when a missing must-have skill capped the total at 40 (spec §3).
+  capApplied        Boolean  @default(false)
+  matchedMustHave   String[]
+  missingMustHave   String[]
+  matchedNiceToHave String[]
+  /// Matched skills ordered by score contribution.
+  rankedSkills      Json
+  cvDocumentVersion Int
+  parserVersion     String
+  scoredAt          DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  applicationId String      @unique
+  application   Application @relation(fields: [applicationId], references: [id])
+
+  @@index([totalScore])
+  @@map("candidate_scores")
+}
+
 /// Scheduled interview. Panel is a many-to-many with User; slot booked by
 /// the candidate from interviewer availability.
 model Interview {
@@ -265,6 +296,9 @@ model Interview {
   slotStart DateTime
   slotEnd   DateTime
   videoLink String?
+  /// Provider event id (Microsoft 365 Graph) so cancellations can remove
+  /// the calendar invite. Null for interviews created before calendar sync.
+  calendarEventId String?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 
