@@ -49,6 +49,12 @@ const RULES: RouteRule[] = [
       POST: RECRUITING_WRITE,
     },
   },
+  {
+    pattern: /^\/api\/candidates\/[^/]+\/parse$/,
+    methods: {
+      POST: RECRUITING_WRITE,
+    },
+  },
 ];
 
 // Page routes (order matters: more specific patterns first). Unauthenticated
