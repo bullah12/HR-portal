@@ -22,6 +22,8 @@ const NAV_LINKS: NavLink[] = [
   { href: '/jobs', label: 'Jobs', roles: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER'] },
   { href: '/jobs/new', label: 'New job', roles: ['HR_ADMIN', 'RECRUITER'] },
   { href: '/candidates', label: 'Candidates', roles: ['HR_ADMIN', 'RECRUITER'] },
+  { href: '/interviews', label: 'Interviews', roles: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'INTERVIEWER'] },
+  { href: '/offers', label: 'Offers', roles: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'FINANCE_APPROVER'] },
 ];
 
 export default function Navbar() {

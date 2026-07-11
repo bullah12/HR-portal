@@ -56,6 +56,10 @@ export function toOfferDto(offer: OfferWithRelations) {
     startDate: offer.startDate.toISOString(),
     approvalState: offer.approvalState,
     signatureStatus: offer.signatureStatus,
+    candidateDecision: offer.candidateDecision,
+    candidateDecidedAt: offer.candidateDecidedAt?.toISOString() ?? null,
+    /// Staff-visible so recruiters can share the candidate offer link.
+    candidateLink: `/offers?offer=${offer.id}&token=${offer.accessToken}`,
     expiresAt: offer.expiresAt.toISOString(),
     signedAt: offer.signedAt?.toISOString() ?? null,
     createdAt: offer.createdAt.toISOString(),
