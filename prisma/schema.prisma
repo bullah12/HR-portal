@@ -1,0 +1,414 @@
+// HR Portal — Phase 1 schema
+// Source of truth for the database (no migrations folder; use `prisma db push`).
+// Entities and relationships follow docs/hr-portal-spec.md, section 4.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+// Staff roles only — Candidate and New Hire are represented by the Candidate
+// entity, not User accounts (auth arrives in Phase 1b).
+enum UserRole {
+  HR_ADMIN
+  RECRUITER
+  HIRING_MANAGER
+  INTERVIEWER
+  FINANCE_APPROVER
+  DPO_AUDITOR
+}
+
+enum JobStatus {
+  DRAFT
+  PENDING_APPROVAL
+  PUBLISHED
+  CLOSED
+}
+
+enum CandidateSource {
+  CAREERS_PAGE
+  JOB_BOARD
+  REFERRAL
+  AGENCY
+  DIRECT_SOURCING
+}
+
+enum ConsentStatus {
+  PENDING
+  GRANTED
+  WITHDRAWN
+  EXPIRED
+}
+
+enum ApplicationStage {
+  APPLIED
+  KNOCKOUT_FAILED
+  SCREENING
+  SHORTLISTED
+  INTERVIEW
+  OFFER
+  HIRED
+  REJECTED
+  WITHDRAWN
+}
+
+enum InterviewType {
+  PHONE_SCREEN
+  TECHNICAL
+  PANEL
+  HIRING_MANAGER
+  FINAL
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  RESCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum ScorecardRecommendation {
+  STRONG_YES
+  YES
+  NO
+  STRONG_NO
+}
+
+enum OfferApprovalState {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum SignatureStatus {
+  NOT_SENT
+  SENT
+  SIGNED
+  DECLINED
+  EXPIRED
+}
+
+enum ApprovalDecision {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ConsentPurpose {
+  APPLICATION_PROCESSING
+  TALENT_POOL
+}
+
+enum OnboardingTaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+/// Staff member. Referenced across entities (job owner, interviewer,
+/// approver, onboarding task owner, audit actor).
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  role         UserRole
+  department   String
+  calendarLink String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedJobs       Job[]           @relation("JobOwner")
+  interviewPanels Interview[]     @relation("InterviewPanelists")
+  scorecards      Scorecard[]
+  offerApprovals  OfferApproval[]
+  onboardingTasks OnboardingTask[] @relation("TaskOwner")
+  auditLogs       AuditLog[]
+
+  @@map("users")
+}
+
+/// Open requisition. Requirement tags split into must-have / nice-to-have
+/// skills to drive the weighted CV-match score (spec section 3).
+model Job {
+  id                String    @id @default(cuid())
+  title             String
+  description       String
+  location          String
+  status            JobStatus @default(DRAFT)
+  mustHaveSkills    String[]
+  niceToHaveSkills  String[]
+  minExperienceYears Int      @default(0)
+  compBandMin       Decimal   @db.Decimal(10, 2)
+  compBandMax       Decimal   @db.Decimal(10, 2)
+  compBandCurrency  String    @default("EUR")
+  publishedAt       DateTime?
+  closedAt          DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  ownerId String
+  owner   User   @relation("JobOwner", fields: [ownerId], references: [id])
+
+  applications Application[]
+
+  @@index([status])
+  @@index([ownerId])
+  @@map("jobs")
+}
+
+/// Person in the pipeline. `maskedInRankingView` supports the bias controls
+/// (name, photo, age, address hidden in the ranking view).
+model Candidate {
+  id                  String          @id @default(cuid())
+  firstName           String
+  lastName            String
+  email               String          @unique
+  phone               String?
+  location            String?
+  source              CandidateSource
+  consentStatus       ConsentStatus   @default(PENDING)
+  maskedInRankingView Boolean         @default(true)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  applications   Application[]
+  consentRecords ConsentRecord[]
+
+  @@index([email])
+  @@map("candidates")
+}
+
+/// A Candidate applying to a Job. Unique per pair — supports
+/// duplicate-candidate detection. Score is 0–100 (spec section 3);
+/// null until parsing/scoring has run or when knockouts failed.
+model Application {
+  id              String           @id @default(cuid())
+  stage           ApplicationStage @default(APPLIED)
+  score           Int?
+  knockoutResults Json?
+  rejectionReason String?
+  appliedAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id])
+  jobId       String
+  job         Job       @relation(fields: [jobId], references: [id])
+
+  cvDocuments    CVDocument[]
+  parseResult    ParseResult?
+  interviews     Interview[]
+  offer          Offer?
+  onboardingPlan OnboardingPlan?
+
+  @@unique([candidateId, jobId])
+  @@index([jobId, stage])
+  @@index([jobId, score])
+  @@map("applications")
+}
+
+/// Uploaded CV file. File lives in S3 (SSE-KMS); only the object key is
+/// stored here. Versioned per application.
+model CVDocument {
+  id         String   @id @default(cuid())
+  fileRef    String
+  version    Int      @default(1)
+  uploadDate DateTime @default(now())
+
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id])
+
+  @@unique([applicationId, version])
+  @@map("cv_documents")
+}
+
+/// Output of the managed parsing API (Textkernel) for one application.
+/// `extractedFields` holds contact/work-history/education/skills JSON;
+/// `scoreBreakdown` holds the weighted component scores.
+model ParseResult {
+  id             String   @id @default(cuid())
+  extractedFields Json
+  scoreBreakdown  Json
+  parserVersion   String
+  parsedAt        DateTime @default(now())
+
+  applicationId String      @unique
+  application   Application @relation(fields: [applicationId], references: [id])
+
+  @@map("parse_results")
+}
+
+/// Scheduled interview. Panel is a many-to-many with User; slot booked by
+/// the candidate from interviewer availability.
+model Interview {
+  id        String          @id @default(cuid())
+  type      InterviewType
+  status    InterviewStatus @default(SCHEDULED)
+  slotStart DateTime
+  slotEnd   DateTime
+  videoLink String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id])
+
+  panelists  User[]      @relation("InterviewPanelists")
+  scorecards Scorecard[]
+
+  @@index([applicationId])
+  @@index([slotStart])
+  @@map("interviews")
+}
+
+/// One interviewer's structured feedback for one interview.
+/// `ratings` is a map of criterion → rating (1–5).
+model Scorecard {
+  id             String                  @id @default(cuid())
+  ratings        Json
+  recommendation ScorecardRecommendation
+  notes          String?
+  submittedAt    DateTime                @default(now())
+
+  interviewId   String
+  interview     Interview @relation(fields: [interviewId], references: [id])
+  interviewerId String
+  interviewer   User      @relation(fields: [interviewerId], references: [id])
+
+  @@unique([interviewId, interviewerId])
+  @@map("scorecards")
+}
+
+/// Offer for an application. Comp is validated against the job's band;
+/// approval runs through a sequential chain (OfferApproval rows).
+model Offer {
+  id              String             @id @default(cuid())
+  baseSalary      Decimal            @db.Decimal(10, 2)
+  currency        String             @default("EUR")
+  bonusPercent    Decimal?           @db.Decimal(5, 2)
+  startDate       DateTime
+  approvalState   OfferApprovalState @default(DRAFT)
+  signatureStatus SignatureStatus    @default(NOT_SENT)
+  expiresAt       DateTime
+  signedAt        DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  applicationId String      @unique
+  application   Application @relation(fields: [applicationId], references: [id])
+
+  approvals OfferApproval[]
+
+  @@map("offers")
+}
+
+/// One step in an offer's sequential approval chain
+/// (e.g. hiring manager → finance approver).
+model OfferApproval {
+  id        String           @id @default(cuid())
+  sequence  Int
+  decision  ApprovalDecision @default(PENDING)
+  comment   String?
+  decidedAt DateTime?
+
+  offerId    String
+  offer      Offer  @relation(fields: [offerId], references: [id])
+  approverId String
+  approver   User   @relation(fields: [approverId], references: [id])
+
+  @@unique([offerId, sequence])
+  @@map("offer_approvals")
+}
+
+/// Onboarding container created when an offer is signed.
+/// `progressPercent` is derived from task completion and cached here.
+model OnboardingPlan {
+  id                String   @id @default(cuid())
+  startDate         DateTime
+  checklistTemplate String
+  progressPercent   Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  applicationId String      @unique
+  application   Application @relation(fields: [applicationId], references: [id])
+
+  tasks OnboardingTask[]
+
+  @@map("onboarding_plans")
+}
+
+/// Single checklist item: contract upload, right-to-work, IT provisioning,
+/// buddy assignment, etc. `docRef` is an S3 key when a document is collected.
+model OnboardingTask {
+  id          String               @id @default(cuid())
+  title       String
+  status      OnboardingTaskStatus @default(PENDING)
+  dueDate     DateTime
+  docRef      String?
+  completedAt DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  planId  String
+  plan    OnboardingPlan @relation(fields: [planId], references: [id])
+  ownerId String
+  owner   User           @relation("TaskOwner", fields: [ownerId], references: [id])
+
+  @@index([planId])
+  @@index([ownerId, status])
+  @@map("onboarding_tasks")
+}
+
+/// GDPR consent trail per candidate. A withdrawn or expired record is never
+/// deleted — withdrawal is recorded via `withdrawnAt`.
+model ConsentRecord {
+  id          String         @id @default(cuid())
+  purpose     ConsentPurpose
+  grantedAt   DateTime
+  withdrawnAt DateTime?
+  expiresAt   DateTime
+
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id])
+
+  @@index([candidateId, purpose])
+  @@index([expiresAt])
+  @@map("consent_records")
+}
+
+/// Append-only audit trail (GDPR / EU AI Act decision logging).
+/// `entityType` + `entityId` form a polymorphic reference to any entity;
+/// `actorId` is null for system-initiated actions.
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  entityType String
+  entityId   String
+  detail     Json?
+  timestamp  DateTime @default(now())
+
+  actorId String?
+  actor   User?   @relation(fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
