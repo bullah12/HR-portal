@@ -15,7 +15,7 @@ import {
   type StaffRole,
 } from '@/lib/auth';
 
-const PUBLIC_API_PATHS = new Set<string>(['/api/auth/login']);
+const PUBLIC_API_PATHS = new Set<string>(['/api/auth/login', '/api/auth/logout']);
 
 /** Roles allowed to create jobs and manage candidate records. */
 const RECRUITING_WRITE: StaffRole[] = ['HR_ADMIN', 'RECRUITER'];
@@ -51,12 +51,50 @@ const RULES: RouteRule[] = [
   },
 ];
 
+// Page routes (order matters: more specific patterns first). Unauthenticated
+// visitors are redirected to /login; authenticated users without the role
+// land on /jobs when they can see it, otherwise /login.
+const PAGE_RULES: Array<{ pattern: RegExp; roles: StaffRole[] }> = [
+  { pattern: /^\/jobs\/new$/, roles: RECRUITING_WRITE },
+  { pattern: /^\/jobs(\/.*)?$/, roles: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER'] },
+  { pattern: /^\/candidates(\/.*)?$/, roles: RECRUITING_WRITE },
+];
+
+const JOBS_PAGE_ROLES: StaffRole[] = ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER'];
+
 function deny(status: number, code: string, message: string): NextResponse {
   return NextResponse.json({ success: false, error: { code, message } }, { status });
 }
 
+async function handlePageRequest(request: NextRequest, pathname: string): Promise<NextResponse> {
+  const rule = PAGE_RULES.find((candidate) => candidate.pattern.test(pathname));
+  if (!rule) {
+    return NextResponse.next();
+  }
+
+  const loginUrl = new URL('/login', request.url);
+
+  const token = extractToken(request);
+  const payload = token ? await verifyAuthToken(token) : null;
+  if (!payload) {
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (!rule.roles.includes(payload.role)) {
+    // Send them somewhere they can see; avoid a redirect loop on /jobs.
+    const fallback = JOBS_PAGE_ROLES.includes(payload.role) && pathname !== '/jobs' ? '/jobs' : '/login';
+    return NextResponse.redirect(new URL(fallback, request.url));
+  }
+
+  return NextResponse.next();
+}
+
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
+
+  if (!pathname.startsWith('/api/')) {
+    return handlePageRequest(request, pathname);
+  }
 
   // Never trust identity headers supplied by the client.
   const forwardedHeaders = new Headers(request.headers);
@@ -101,5 +139,5 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  matcher: '/api/:path*',
+  matcher: ['/api/:path*', '/jobs/:path*', '/candidates/:path*'],
 };
