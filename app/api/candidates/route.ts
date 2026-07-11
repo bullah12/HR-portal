@@ -12,6 +12,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/auth';
 import { fail, ok, toCandidateDto, CANDIDATE_SOURCES } from '@/lib/types';
+import { notifyNewCandidate } from '@/lib/integrations/slack';
 
 export const runtime = 'nodejs';
 
@@ -129,6 +130,12 @@ export async function POST(request: NextRequest) {
         entityId: candidate.id,
         detail: { source: candidate.source, consentStatus: candidate.consentStatus },
       },
+    });
+
+    // Best-effort Slack ping — sendSlackMessage never throws.
+    await notifyNewCandidate({
+      candidateName: `${candidate.firstName} ${candidate.lastName}`,
+      source: candidate.source,
     });
 
     return ok(toCandidateDto(candidate), 201);

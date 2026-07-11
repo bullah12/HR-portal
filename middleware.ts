@@ -15,7 +15,14 @@ import {
   type StaffRole,
 } from '@/lib/auth';
 
-const PUBLIC_API_PATHS = new Set<string>(['/api/auth/login', '/api/auth/logout']);
+const PUBLIC_API_PATHS = new Set<string>([
+  '/api/auth/login',
+  '/api/auth/logout',
+  // Vendor webhooks authenticate with HMAC signatures inside the route
+  // handlers, not with staff JWTs.
+  '/api/webhooks/backgroundCheck',
+  '/api/webhooks/esign',
+]);
 
 /**
  * Candidate-facing token routes (spec: public onboarding/offer links, no
@@ -127,6 +134,24 @@ const RULES: RouteRule[] = [
     pattern: /^\/api\/users$/,
     methods: {
       GET: RECRUITING_WRITE,
+    },
+  },
+  {
+    pattern: /^\/api\/jobs\/[^/]+\/post-to-boards$/,
+    methods: {
+      POST: RECRUITING_WRITE,
+    },
+  },
+  {
+    pattern: /^\/api\/candidates\/[^/]+\/background-check$/,
+    methods: {
+      POST: RECRUITING_WRITE,
+    },
+  },
+  {
+    pattern: /^\/api\/offers\/[^/]+\/send-for-signature$/,
+    methods: {
+      POST: RECRUITING_WRITE,
     },
   },
 ];

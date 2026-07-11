@@ -19,6 +19,7 @@
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { fail, ok } from '@/lib/types';
+import { notifyOfferAccepted } from '@/lib/integrations/slack';
 
 export const runtime = 'nodejs';
 
@@ -174,6 +175,13 @@ export async function POST(request: Request, { params }: { params: { id: string 
         },
       }),
     ]);
+
+    // Best-effort Slack ping — sendSlackMessage never throws.
+    await notifyOfferAccepted({
+      candidateName: `${offer.application.candidate.firstName} ${offer.application.candidate.lastName}`,
+      jobTitle: offer.application.job.title,
+      startDate: offer.startDate,
+    });
 
     return ok({
       decision: 'ACCEPTED',

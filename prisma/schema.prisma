@@ -138,6 +138,25 @@ enum CandidateDecision {
   DECLINED
 }
 
+enum JobBoardPostingStatus {
+  POSTED
+  FAILED
+}
+
+enum BackgroundCheckStatus {
+  REQUESTED
+  IN_PROGRESS
+  CLEAR
+  CONSIDER
+  FAILED
+}
+
+enum WebhookEventStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
 // ---------------------------------------------------------------------------
 // Models
 // ---------------------------------------------------------------------------
@@ -188,11 +207,29 @@ model Job {
   ownerId String
   owner   User   @relation("JobOwner", fields: [ownerId], references: [id])
 
-  applications Application[]
+  applications  Application[]
+  boardPostings JobBoardPosting[]
 
   @@index([status])
   @@index([ownerId])
   @@map("jobs")
+}
+
+/// One posting of a job to one external board via the multiposting
+/// aggregator (Broadbean, spec section 6).
+model JobBoardPosting {
+  id          String                @id @default(cuid())
+  board       String
+  status      JobBoardPostingStatus
+  externalRef String?
+  error       String?
+  postedAt    DateTime              @default(now())
+
+  jobId String
+  job   Job    @relation(fields: [jobId], references: [id])
+
+  @@unique([jobId, board])
+  @@map("job_board_postings")
 }
 
 /// Person in the pipeline. `maskedInRankingView` supports the bias controls
@@ -234,12 +271,13 @@ model Application {
   jobId       String
   job         Job       @relation(fields: [jobId], references: [id])
 
-  cvDocuments    CVDocument[]
-  parseResult    ParseResult?
-  candidateScore CandidateScore?
-  interviews     Interview[]
-  offer          Offer?
-  onboardingPlan OnboardingPlan?
+  cvDocuments      CVDocument[]
+  parseResult      ParseResult?
+  candidateScore   CandidateScore?
+  interviews       Interview[]
+  offer            Offer?
+  onboardingPlan   OnboardingPlan?
+  backgroundChecks BackgroundCheck[]
 
   @@unique([candidateId, jobId])
   @@index([jobId, stage])
@@ -364,6 +402,8 @@ model Offer {
   signatureStatus SignatureStatus    @default(NOT_SENT)
   /// Secret in the candidate's offer link (/offers?offer=<id>&token=<this>).
   accessToken     String             @unique @default(dbgenerated("gen_random_uuid()::text"))
+  /// DocuSign envelope id once the offer letter has been sent for signature.
+  esignEnvelopeId String?            @unique
   candidateDecision   CandidateDecision @default(PENDING)
   candidateDecidedAt  DateTime?
   expiresAt       DateTime
@@ -482,6 +522,44 @@ model ConsentRecord {
   @@index([candidateId, purpose])
   @@index([expiresAt])
   @@map("consent_records")
+}
+
+/// Background check ordered with the provider (Zinc, spec section 6:
+/// EU-compliant referencing / right-to-work). Status transitions arrive
+/// via the provider webhook.
+model BackgroundCheck {
+  id          String                @id @default(cuid())
+  provider    String                @default("zinc")
+  externalId  String                @unique
+  package     String
+  status      BackgroundCheckStatus @default(REQUESTED)
+  result      Json?
+  requestedAt DateTime              @default(now())
+  completedAt DateTime?
+
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id])
+
+  @@index([applicationId])
+  @@map("background_checks")
+}
+
+/// Inbound webhook deliveries (background checks, e-signature). Persisted
+/// before processing so handlers return fast and events survive crashes;
+/// processed asynchronously (SQS worker in production, spec section 5).
+model WebhookEvent {
+  id                String             @id @default(cuid())
+  provider          String
+  eventType         String
+  payload           Json
+  signatureVerified Boolean
+  status            WebhookEventStatus @default(PENDING)
+  error             String?
+  receivedAt        DateTime           @default(now())
+  processedAt       DateTime?
+
+  @@index([provider, status])
+  @@map("webhook_events")
 }
 
 /// Append-only audit trail (GDPR / EU AI Act decision logging).

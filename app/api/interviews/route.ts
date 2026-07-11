@@ -18,6 +18,7 @@ import { getAuthContext } from '@/lib/auth';
 import { fail, ok } from '@/lib/types';
 import { getCalendarProvider, CalendarError } from '@/lib/calendar';
 import { renderInterviewConfirmationEmail } from '@/lib/email';
+import { notifyInterviewScheduled } from '@/lib/integrations/slack';
 
 export const runtime = 'nodejs';
 
@@ -263,6 +264,15 @@ export async function POST(request: NextRequest) {
           decisionBy: 'human',
         },
       },
+    });
+
+    // Best-effort Slack ping — sendSlackMessage never throws.
+    await notifyInterviewScheduled({
+      candidateName: `${application.candidate.firstName} ${application.candidate.lastName}`,
+      jobTitle: application.job.title,
+      type: parsed.data.type,
+      slotStart,
+      panelistNames: panelists.map((panelist) => panelist.name),
     });
 
     return ok(
