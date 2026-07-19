@@ -527,4 +527,3 @@ ALTER TABLE "_InterviewPanelists" ADD CONSTRAINT "_InterviewPanelists_A_fkey" FO
 
 -- AddForeignKey
 ALTER TABLE "_InterviewPanelists" ADD CONSTRAINT "_InterviewPanelists_B_fkey" FOREIGN KEY ("B") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-

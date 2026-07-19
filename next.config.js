@@ -6,6 +6,8 @@ const nextConfig = {
     // pdfjs-dist (via pdf-parse) breaks when bundled by webpack — load the
     // parsing packages from node_modules at runtime instead.
     serverComponentsExternalPackages: ['pdf-parse', 'pdfjs-dist', 'mammoth', 'pdfkit'],
+    // Startup warning for missing webhook secrets (instrumentation.ts).
+    instrumentationHook: true,
   },
 };
 
