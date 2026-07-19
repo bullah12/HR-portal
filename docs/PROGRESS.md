@@ -8,7 +8,7 @@ prompts in docs/FABLE_PROMPTS.md). Updated after every phase.
 | Phase | Deliverable | Status | Proof | Deviation from PLAN.md |
 |---|---|---|---|---|
 | 1 | CI quality gate (ESLint + GitHub Actions) | ✅ green | see Phase 1 proof below | none |
-| 2 | Real README | ⏳ pending | — | — |
+| 2 | Real README | ✅ green | see Phase 2 proof below | none |
 | 3 | Close schema ↔ app gaps | ⏳ pending | — | — |
 | 4 | Tests on critical paths | ⏳ pending | — | — |
 | 5 | Deploy target + steps | ⏳ pending | — | — |
@@ -85,4 +85,28 @@ $ npm run build
 - Note during build: `/api/users` logs a Next.js "Dynamic server usage"
   info line during static-page generation — expected for a header-reading
   route, not an error; build exits 0.
-- CI run status: recorded after first push (see PR).
+- CI run status: **green** — run #1 `completed / success`
+  (https://github.com/bullah12/HR-portal/actions/runs/29673061981), commit
+  6b52271. PR: https://github.com/bullah12/HR-portal/pull/7
+
+### Phase 2 — Real README ✅
+
+Setup steps executed end-to-end against a clean database before writing
+them down (2026-07-19):
+
+```
+$ psql ... -c 'drop database hr_portal' -c 'create database hr_portal'
+$ npx prisma db push          # ✔ schema applied, client generated
+$ npx prisma db seed          # 🌱 seed executed (users, jobs, candidates…)
+$ npm run dev                 # server up on :3000
+$ curl http://localhost:3000/login                    → 200
+$ curl -X POST /api/auth/login (sofia.lindqvist…)     → success:true, JWT issued
+$ curl /api/jobs (with auth cookie)                   → seeded jobs returned
+```
+
+README section list: Overview (3 paras, links to PLAN.md) / Prerequisites /
+Setup / Seeded demo accounts / npm scripts / Integration modes (dual-mode
+table + unverified-live callout) / Deployment (Phase 5 stub).
+
+No application code changed. CI still green at the Phase 1 commit; Phase 2
+run recorded on push.
