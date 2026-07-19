@@ -20,6 +20,7 @@ const prisma = new PrismaClient();
 const DEMO_PASSWORDS = {
   recruiter: 'Recruit3r!Demo',
   hiringManager: 'Hiring!Demo42',
+  dpoAuditor: 'Audit0r!Demo',
 } as const;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -75,6 +76,16 @@ async function main(): Promise<void> {
       role: 'HIRING_MANAGER',
       department: 'Engineering',
       calendarLink: 'https://outlook.office365.com/calendar/marcus.weber',
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      email: 'ines.moreau@acme-corp.example',
+      passwordHash: bcrypt.hashSync(DEMO_PASSWORDS.dpoAuditor, 12),
+      name: 'Inès Moreau',
+      role: 'DPO_AUDITOR',
+      department: 'Legal & Compliance',
     },
   });
 

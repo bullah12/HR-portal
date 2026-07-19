@@ -1,6 +1,6 @@
 // HR Portal — Phase 1 schema
-// Source of truth for the database (no migrations folder; use `prisma db push`).
-// Entities and relationships follow docs/hr-portal-spec.md, section 4.
+// Source of truth for the database (use `prisma db push` in development).
+// Product concepts and requirements are documented in docs/hr-portal-spec.md.
 
 generator client {
   provider = "prisma-client-js"

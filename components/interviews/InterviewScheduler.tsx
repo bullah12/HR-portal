@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusPill from '@/components/ui/StatusPill';
+import ScorecardSection from '@/components/interviews/ScorecardSection';
 import {
   apiFetch,
   canManageRecruiting,
@@ -119,6 +120,7 @@ export default function InterviewScheduler() {
   const [submitting, setSubmitting] = useState(false);
   const [lastScheduled, setLastScheduled] = useState<ScheduleResult | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [scorecardsOpenFor, setScorecardsOpenFor] = useState<string | null>(null);
 
   const isRecruiting = user !== null && canManageRecruiting(user.role);
 
@@ -345,6 +347,15 @@ export default function InterviewScheduler() {
 
                     <div className="flex items-center gap-2 sm:justify-end">
                       <StatusPill kind="interview" value={interview.status} />
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() =>
+                          setScorecardsOpenFor((current) => (current === interview.id ? null : interview.id))
+                        }
+                      >
+                        Scorecards ({interview.scorecardCount})
+                      </Button>
                       {isRecruiting && ['SCHEDULED', 'RESCHEDULED'].includes(interview.status) && (
                         <Button
                           variant="secondary"
@@ -356,6 +367,17 @@ export default function InterviewScheduler() {
                         </Button>
                       )}
                     </div>
+                    {scorecardsOpenFor === interview.id && user && (
+                      <div className="sm:col-span-3">
+                        <ScorecardSection
+                          interviewId={interview.id}
+                          interviewStatus={interview.status}
+                          panelistIds={interview.panelists.map((panelist) => panelist.id)}
+                          user={user}
+                          onSubmitted={() => void loadInterviews()}
+                        />
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>

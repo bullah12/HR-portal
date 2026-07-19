@@ -51,7 +51,7 @@ export default function LoginForm() {
     }
 
     storeUser(result.data.user);
-    router.push('/');
+    router.push(result.data.user.role === 'DPO_AUDITOR' ? '/audit' : '/');
     router.refresh();
   }
 

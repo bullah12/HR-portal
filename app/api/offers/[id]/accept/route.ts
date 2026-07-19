@@ -20,6 +20,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { fail, ok } from '@/lib/types';
 import { notifyOfferAccepted } from '@/lib/integrations/slack';
+import { renderOfferAcceptedEmail, sendEmail } from '@/lib/email';
 
 export const runtime = 'nodejs';
 
@@ -175,6 +176,19 @@ export async function POST(request: Request, { params }: { params: { id: string 
         },
       }),
     ]);
+
+    // Welcome email with the onboarding link (dual-mode: SMTP when
+    // configured, logged locally otherwise; never throws).
+    const baseUrl = (process.env.APP_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+    await sendEmail(
+      renderOfferAcceptedEmail({
+        candidateName: `${offer.application.candidate.firstName} ${offer.application.candidate.lastName}`,
+        candidateEmail: offer.application.candidate.email,
+        jobTitle: offer.application.job.title,
+        startDate: offer.startDate,
+        onboardingUrl: `${baseUrl}/onboarding/${plan.accessToken}`,
+      }),
+    );
 
     // Best-effort Slack ping — sendSlackMessage never throws.
     await notifyOfferAccepted({

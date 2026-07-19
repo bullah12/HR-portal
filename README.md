@@ -63,6 +63,7 @@ Dev-only credentials created by `prisma/seed.ts`:
 |---|---|---|
 | `sofia.lindqvist@acme-corp.example` | `Recruit3r!Demo` | RECRUITER |
 | `marcus.weber@acme-corp.example` | `Hiring!Demo42` | HIRING_MANAGER |
+| `ines.moreau@acme-corp.example` | `Audit0r!Demo` | DPO_AUDITOR |
 
 The seed also creates 3 jobs and 5 candidates spanning the whole pipeline
 (one hired with onboarding in progress, one at interview stage with
@@ -101,7 +102,7 @@ when they are unset. With a bare `.env` (only `DATABASE_URL` +
 | E-signature (DocuSign) | `DOCUSIGN_*` | `local-env-…` envelope ids |
 | Calendar + Teams links (MS Graph) | `MS_GRAPH_*` | Deterministic event ids and join links |
 | Slack notifications | `SLACK_WEBHOOK_URL` | Messages logged to the server console |
-| Email | — | Templates render; nothing is sent (no real branch exists yet) |
+| Email (SMTP via nodemailer) | `SMTP_HOST/PORT/USER/PASS`, `EMAIL_FROM` | Rendered email logged to the server console |
 
 CV and onboarding uploads go to local disk (`CV_UPLOAD_DIR`,
 `ONBOARDING_UPLOAD_DIR`).

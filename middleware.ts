@@ -99,6 +99,13 @@ const RULES: RouteRule[] = [
     },
   },
   {
+    pattern: /^\/api\/interviews\/[^/]+\/scorecards$/,
+    methods: {
+      GET: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'INTERVIEWER'],
+      POST: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'INTERVIEWER'],
+    },
+  },
+  {
     pattern: /^\/api\/offers$/,
     methods: {
       GET: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'FINANCE_APPROVER'],
@@ -145,6 +152,18 @@ const RULES: RouteRule[] = [
     },
   },
   {
+    pattern: /^\/api\/jobs\/[^/]+$/,
+    methods: {
+      PATCH: RECRUITING_WRITE,
+    },
+  },
+  {
+    pattern: /^\/api\/audit-logs$/,
+    methods: {
+      GET: ['HR_ADMIN', 'DPO_AUDITOR'],
+    },
+  },
+  {
     pattern: /^\/api\/jobs\/[^/]+\/post-to-boards$/,
     methods: {
       POST: RECRUITING_WRITE,
@@ -169,6 +188,7 @@ const RULES: RouteRule[] = [
 // land on /jobs when they can see it, otherwise /login.
 const PAGE_RULES: Array<{ pattern: RegExp; roles: StaffRole[] }> = [
   { pattern: /^\/$/, roles: ALL_STAFF },
+  { pattern: /^\/audit(\/.*)?$/, roles: ['HR_ADMIN', 'DPO_AUDITOR'] },
   { pattern: /^\/jobs\/new$/, roles: RECRUITING_WRITE },
   { pattern: /^\/jobs(\/.*)?$/, roles: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER'] },
   { pattern: /^\/candidates(\/.*)?$/, roles: RECRUITING_WRITE },
@@ -200,7 +220,12 @@ async function handlePageRequest(request: NextRequest, pathname: string): Promis
 
   if (!rule.roles.includes(payload.role)) {
     // Send them somewhere they can see; avoid a redirect loop on /jobs.
-    const fallback = JOBS_PAGE_ROLES.includes(payload.role) && pathname !== '/jobs' ? '/jobs' : '/login';
+    const fallback =
+      JOBS_PAGE_ROLES.includes(payload.role) && pathname !== '/jobs'
+        ? '/jobs'
+        : payload.role === 'DPO_AUDITOR' && pathname !== '/audit'
+          ? '/audit'
+          : '/login';
     return NextResponse.redirect(new URL(fallback, request.url));
   }
 
@@ -264,5 +289,5 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  matcher: ['/', '/api/:path*', '/jobs/:path*', '/candidates/:path*', '/interviews/:path*'],
+  matcher: ['/', '/api/:path*', '/jobs/:path*', '/candidates/:path*', '/interviews/:path*', '/audit/:path*'],
 };

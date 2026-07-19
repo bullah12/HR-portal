@@ -28,6 +28,7 @@ export default function JobList() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     setUser(getStoredUser());
@@ -72,6 +73,38 @@ export default function JobList() {
       ),
     );
   }, [jobs, search]);
+
+  const statusActions: Partial<Record<JobStatus, Array<{ label: string; to: JobStatus }>>> = {
+    DRAFT: [
+      { label: 'Submit for approval', to: 'PENDING_APPROVAL' },
+      { label: 'Publish', to: 'PUBLISHED' },
+    ],
+    PENDING_APPROVAL: [{ label: 'Publish', to: 'PUBLISHED' }],
+    PUBLISHED: [{ label: 'Close', to: 'CLOSED' }],
+  };
+
+  async function handleStatusChange(job: JobDto, to: JobStatus) {
+    if (to === 'CLOSED' && !window.confirm(`Close "${job.title}"? A closed job can no longer be edited.`)) {
+      return;
+    }
+
+    setUpdatingId(job.id);
+    setError(null);
+    const result = await apiFetch<JobDto>(`/api/jobs/${job.id}`, { method: 'PATCH', json: { status: to } });
+    setUpdatingId(null);
+
+    if (!result.ok) {
+      if (result.status === 401) {
+        clearStoredUser();
+        router.push('/login');
+        return;
+      }
+      setError(result.error.message);
+      return;
+    }
+
+    setJobs((current) => current.map((entry) => (entry.id === job.id ? result.data : entry)));
+  }
 
   return (
     <section>
@@ -163,6 +196,22 @@ export default function JobList() {
                 </span>
                 <span>{job.publishedAt ? `Published ${formatDate(job.publishedAt)}` : `Created ${formatDate(job.createdAt)}`}</span>
               </div>
+
+              {user && canManageRecruiting(user.role) && (statusActions[job.status] ?? []).length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                  {(statusActions[job.status] ?? []).map((action) => (
+                    <Button
+                      key={action.to}
+                      variant={action.to === 'CLOSED' ? 'danger' : 'secondary'}
+                      size="sm"
+                      disabled={updatingId === job.id}
+                      onClick={() => handleStatusChange(job, action.to)}
+                    >
+                      {updatingId === job.id ? 'Updating…' : action.label}
+                    </Button>
+                  ))}
+                </div>
+              )}
             </li>
           ))}
         </ul>
