@@ -83,10 +83,34 @@ after seeding.
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run db:push` | Apply `prisma/schema.prisma` to the database |
 | `npm run db:seed` | Seed demo data (also `npx prisma db seed`) |
+| `npm test` | Vitest unit + integration tests (see Testing) |
 
 CI (`.github/workflows/ci.yml`) runs install → `prisma generate` → lint →
-typecheck → build on every push and pull request; no database or
-credentials are needed at build time.
+typecheck → test (against a disposable Postgres service container) →
+build on every push and pull request; no credentials are needed.
+
+## Testing
+
+Unit tests (scorer, extractor, webhook HMACs, JWT) need no database.
+Integration tests (full pipeline, RBAC middleware, webhook processing)
+run against a **disposable** Postgres database — they wipe it on every
+run, so never point them at your dev database. Local equivalent of the CI
+service container:
+
+```bash
+# one-time: create the throwaway DB next to your dev one
+docker exec hr-portal-pg psql -U postgres -c 'create database hr_portal_test'
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/hr_portal_test?schema=public" \
+  npx prisma db push --skip-generate
+
+# run everything (unit + integration)
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/hr_portal_test?schema=public" \
+  npm test
+```
+
+Tests are hermetic: all integrations run in local dev mode and webhook
+payloads are signed locally (`tests/setup.ts` strips any provider env
+vars).
 
 ## Integration modes
 
