@@ -138,5 +138,60 @@ CV and onboarding uploads go to local disk (`CV_UPLOAD_DIR`,
 
 ## Deployment
 
-Not yet defined — arrives with Phase 5 of the roadmap (docs/PLAN.md §7):
-Docker image, real Prisma migrations, and a concrete platform config.
+Target: **Docker on Fly.io** with a managed Postgres and a persistent
+volume for uploads (docs/PLAN.md §8 Q7 — local-disk uploads rule out
+serverless without an S3 rewrite; a container + volume ships with zero
+storage-code changes). Config lives in `Dockerfile` + `fly.toml`.
+
+### Schema management
+
+Production uses real Prisma migrations (`prisma/migrations/`, baselined
+from the current schema): the release step runs `npx prisma migrate
+deploy` **before** new machines start (`[deploy].release_command` in
+fly.toml) — the app process never touches the schema at boot. Local dev
+keeps `prisma db push`. When you change `prisma/schema.prisma`, create a
+migration with `npx prisma migrate dev --name <change>` so prod stays
+reviewable.
+
+### First deploy
+
+```bash
+fly launch --no-deploy --copy-config          # registers the app, keeps fly.toml
+fly postgres create --name hr-portal-db --region fra
+fly postgres attach hr-portal-db              # sets DATABASE_URL secret
+fly volumes create hr_portal_uploads --region fra --size 10
+
+# Secrets (see the checklist below)
+fly secrets set AUTH_SECRET="$(openssl rand -base64 48)"
+fly secrets set ZINC_WEBHOOK_SECRET="…" DOCUSIGN_WEBHOOK_SECRET="…"
+fly secrets set APP_BASE_URL="https://<your-app>.fly.dev"
+
+fly deploy                                    # build → release (migrate deploy) → start
+```
+
+Seed demo data only if you want it in that environment:
+`fly ssh console -C "npx prisma db seed"` (requires ts-node — run the
+seed from a dev machine against the prod `DATABASE_URL` instead, or skip).
+
+### Releases & rollback
+
+- Every `fly deploy` builds the image, runs `npx prisma migrate deploy`
+  as the release command, and only then swaps machines. A failing
+  migration aborts the release; the old version keeps serving.
+- Roll back the app with `fly releases` + `fly deploy --image <previous image ref>`.
+  Migrations are forward-only — write an explicit down/compensating
+  migration rather than restoring an old image on top of a newer schema.
+- Uploads live on the `hr_portal_uploads` volume and survive deploys;
+  `fly volumes snapshots list` for backups.
+
+### Production env checklist
+
+| Variable | Requirement |
+|---|---|
+| `DATABASE_URL` | Set by `fly postgres attach` (managed Postgres) |
+| `AUTH_SECRET` | **Required.** Freshly generated (`openssl rand -base64 48`) — never the .env.example value |
+| `ZINC_WEBHOOK_SECRET` | **Required in production** (PLAN.md §8 Q9) — unsigned webhooks must not be accepted |
+| `DOCUSIGN_WEBHOOK_SECRET` | **Required in production** (PLAN.md §8 Q9) |
+| `APP_BASE_URL` | Public https URL of the deployment (used in candidate links) |
+| `CV_UPLOAD_DIR` / `ONBOARDING_UPLOAD_DIR` | Leave at defaults (`uploads/…`) — the volume mounts at `/app/uploads` |
+| `MS_GRAPH_*`, `BROADBEAN_*`, `ZINC_API_*`, `DOCUSIGN_*` (non-secret), `SLACK_WEBHOOK_URL`, `SMTP_*` | Optional — each enables its real integration; unset = local mode (unverified live, see Integration modes) |

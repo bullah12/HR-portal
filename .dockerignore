@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.github
+uploads
+docs
+tests
+*.md
+.env
+.env.*
+!.env.example
+Dockerfile
+.dockerignore
+fly.toml
