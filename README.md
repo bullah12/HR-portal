@@ -131,10 +131,22 @@ when they are unset. With a bare `.env` (only `DATABASE_URL` +
 CV and onboarding uploads go to local disk (`CV_UPLOAD_DIR`,
 `ONBOARDING_UPLOAD_DIR`).
 
-> **Note:** the real (env-set) branches are written against plausible
-> provider APIs but have **never been exercised with live credentials** —
-> treat them as unverified until the hardening phase checks each one
-> (docs/PLAN.md, callout at the top and §7 Phase 6).
+> **Note:** every provider above is currently **local mode only**: the
+> real (env-set) branches are written against plausible provider APIs but
+> have **never been exercised with live credentials** (docs/PLAN.md
+> callout + §7 Phase 6). Do not set the real-mode env vars in production
+> until the branch has been verified against a sandbox account. Outside
+> development, the server logs a startup **security warning** when
+> `ZINC_WEBHOOK_SECRET` / `DOCUSIGN_WEBHOOK_SECRET` are unset, because
+> unsigned webhooks would be accepted.
+
+### Scheduled jobs
+
+Consent expiry (GDPR): `npm run consents:expire` flags candidates whose
+every active consent record is past `expiresAt` (status → `EXPIRED`,
+audited as a system action; records are never deleted). Run it daily via
+cron, or on Fly:
+`fly machine run . --schedule daily -- npm run consents:expire`.
 
 ## Deployment
 

@@ -18,46 +18,13 @@ import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/auth';
 import { fail, ok } from '@/lib/types';
 import { parseAndScoreApplication, ParseServiceError } from '@/services/cvParser';
+import { buildJobRanking } from '@/lib/ranking';
 
 export const runtime = 'nodejs';
 
 const bodySchema = z.object({
   jobId: z.string().min(1),
 });
-
-interface RankingEntry {
-  rank: number;
-  applicationId: string;
-  candidateLabel: string;
-  totalScore: number;
-  capApplied: boolean;
-  stage: string;
-}
-
-async function buildJobRanking(jobId: string): Promise<RankingEntry[]> {
-  const scores = await prisma.candidateScore.findMany({
-    where: { application: { jobId } },
-    orderBy: [{ totalScore: 'desc' }, { applicationId: 'asc' }],
-    include: {
-      application: { include: { candidate: true } },
-    },
-  });
-
-  return scores.map((score, index) => {
-    const { candidate } = score.application;
-    return {
-      rank: index + 1,
-      applicationId: score.applicationId,
-      // Bias controls: masked candidates are anonymised in ranking views.
-      candidateLabel: candidate.maskedInRankingView
-        ? `Candidate ${score.applicationId.slice(-6).toUpperCase()}`
-        : `${candidate.firstName} ${candidate.lastName}`,
-      totalScore: score.totalScore,
-      capApplied: score.capApplied,
-      stage: score.application.stage,
-    };
-  });
-}
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {

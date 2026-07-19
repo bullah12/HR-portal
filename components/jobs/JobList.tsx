@@ -17,6 +17,16 @@ import { JOB_STATUSES } from '@/lib/types';
 
 type StatusFilter = 'ALL' | JobStatus;
 
+interface RankingEntry {
+  rank: number;
+  applicationId: string;
+  candidateLabel: string;
+  masked: boolean;
+  totalScore: number;
+  capApplied: boolean;
+  stage: string;
+}
+
 const STATUS_BADGES: Record<JobStatus, string> = {
   DRAFT: 'bg-slate-100 text-slate-700',
   PENDING_APPROVAL: 'bg-amber-100 text-amber-800',
@@ -39,6 +49,9 @@ export default function JobList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [rankingOpenFor, setRankingOpenFor] = useState<string | null>(null);
+  const [rankings, setRankings] = useState<Record<string, RankingEntry[]>>({});
+  const [rankingError, setRankingError] = useState<string | null>(null);
 
   useEffect(() => {
     setUser(getStoredUser());
@@ -103,6 +116,24 @@ export default function JobList() {
       return;
     }
     setJobs((current) => current.map((entry) => (entry.id === job.id ? result.data : entry)));
+  }
+
+  async function toggleRanking(jobId: string) {
+    if (rankingOpenFor === jobId) {
+      setRankingOpenFor(null);
+      return;
+    }
+    setRankingError(null);
+    setRankingOpenFor(jobId);
+    if (!rankings[jobId]) {
+      const result = await apiFetch<{ ranking: RankingEntry[] }>(`/api/jobs/${jobId}/ranking`);
+      if (result.ok) {
+        setRankings((current) => ({ ...current, [jobId]: result.data.ranking }));
+      } else {
+        setRankingError(result.error.message);
+        setRankingOpenFor(null);
+      }
+    }
   }
 
   return (
@@ -180,9 +211,46 @@ export default function JobList() {
             <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
               <span>
                 {job.applicationCount} application{job.applicationCount === 1 ? '' : 's'}
+                {job.applicationCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => toggleRanking(job.id)}
+                    className="ml-2 font-medium text-indigo-700 hover:underline"
+                  >
+                    {rankingOpenFor === job.id ? 'Hide ranking' : 'View ranking'}
+                  </button>
+                )}
               </span>
               <span>{job.publishedAt ? `Published ${formatDate(job.publishedAt)}` : `Created ${formatDate(job.createdAt)}`}</span>
             </div>
+
+            {rankingOpenFor === job.id && (
+              <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                {rankingError && <p className="text-xs text-rose-700">{rankingError}</p>}
+                {!rankings[job.id] ? (
+                  <p className="text-xs text-slate-500">Loading ranking…</p>
+                ) : rankings[job.id].length === 0 ? (
+                  <p className="text-xs text-slate-500">No scored applications yet — parse a CV first.</p>
+                ) : (
+                  <ol className="space-y-1">
+                    {rankings[job.id].map((entry) => (
+                      <li key={entry.applicationId} className="flex items-center justify-between text-xs">
+                        <span className="text-slate-700">
+                          <span className="font-semibold">#{entry.rank}</span>{' '}
+                          {entry.masked ? <em title="Bias controls: identity masked">{entry.candidateLabel}</em> : entry.candidateLabel}
+                        </span>
+                        <span className="text-slate-500">
+                          {entry.totalScore}/100{entry.capApplied ? ' (capped)' : ''} · {entry.stage}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+                <p className="mt-2 text-[11px] text-slate-400">
+                  Decision-support only — stage changes are always recorded by a human.
+                </p>
+              </div>
+            )}
 
             {user && canManageRecruiting(user.role) && (STATUS_ACTIONS[job.status] ?? []).length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3">

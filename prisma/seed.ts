@@ -503,7 +503,7 @@ async function main(): Promise<void> {
     },
   });
 
-  await prisma.application.create({
+  const priyaApplication = await prisma.application.create({
     data: {
       candidateId: priya.id,
       jobId: frontendJob.id,
@@ -758,6 +758,97 @@ async function main(): Promise<void> {
         entityId: tomaszApplication.id,
         detail: { reason: 'missing_must_have_skills', decisionBy: 'human' },
         timestamp: daysAgo(28),
+      },
+    ],
+  });
+
+  // -------------------------------------------------------------------------
+  // Candidate scores (ranking rows matching the seeded parse results, so the
+  // bias-masked ranking view works offline without re-parsing)
+  // -------------------------------------------------------------------------
+  await prisma.candidateScore.createMany({
+    data: [
+      {
+        applicationId: elenaApplication.id,
+        totalScore: 88,
+        mustHavePoints: 50,
+        niceToHavePoints: 15,
+        experiencePoints: 16,
+        locationPoints: 7,
+        capApplied: false,
+        matchedMustHave: ['TypeScript', 'Node.js', 'PostgreSQL', 'REST APIs'],
+        missingMustHave: [],
+        matchedNiceToHave: ['NestJS', 'AWS', 'Prisma'],
+        rankedSkills: [
+          { skill: 'TypeScript', category: 'MUST_HAVE', points: 12.5 },
+          { skill: 'Node.js', category: 'MUST_HAVE', points: 12.5 },
+          { skill: 'PostgreSQL', category: 'MUST_HAVE', points: 12.5 },
+          { skill: 'REST APIs', category: 'MUST_HAVE', points: 12.5 },
+          { skill: 'NestJS', category: 'NICE_TO_HAVE', points: 5 },
+          { skill: 'AWS', category: 'NICE_TO_HAVE', points: 5 },
+          { skill: 'Prisma', category: 'NICE_TO_HAVE', points: 5 },
+        ],
+        cvDocumentVersion: 2,
+        parserVersion: 'textkernel-extract-4.2.0',
+      },
+      {
+        applicationId: jamesApplication.id,
+        totalScore: 74,
+        mustHavePoints: 50,
+        niceToHavePoints: 0,
+        experiencePoints: 16,
+        locationPoints: 8,
+        capApplied: false,
+        matchedMustHave: ['TypeScript', 'Node.js', 'PostgreSQL', 'REST APIs'],
+        missingMustHave: [],
+        matchedNiceToHave: [],
+        rankedSkills: [
+          { skill: 'TypeScript', category: 'MUST_HAVE', points: 12.5 },
+          { skill: 'Node.js', category: 'MUST_HAVE', points: 12.5 },
+          { skill: 'PostgreSQL', category: 'MUST_HAVE', points: 12.5 },
+          { skill: 'REST APIs', category: 'MUST_HAVE', points: 12.5 },
+        ],
+        cvDocumentVersion: 1,
+        parserVersion: 'textkernel-extract-4.2.1',
+      },
+      {
+        applicationId: priyaApplication.id,
+        totalScore: 81,
+        mustHavePoints: 50,
+        niceToHavePoints: 13,
+        experiencePoints: 10,
+        locationPoints: 8,
+        capApplied: false,
+        matchedMustHave: ['React', 'TypeScript', 'CSS'],
+        missingMustHave: [],
+        matchedNiceToHave: ['Next.js', 'Storybook'],
+        rankedSkills: [
+          { skill: 'React', category: 'MUST_HAVE', points: 16.7 },
+          { skill: 'TypeScript', category: 'MUST_HAVE', points: 16.7 },
+          { skill: 'CSS', category: 'MUST_HAVE', points: 16.7 },
+          { skill: 'Next.js', category: 'NICE_TO_HAVE', points: 6.7 },
+          { skill: 'Storybook', category: 'NICE_TO_HAVE', points: 6.7 },
+        ],
+        cvDocumentVersion: 1,
+        parserVersion: 'textkernel-extract-4.2.1',
+      },
+      {
+        applicationId: tomaszApplication.id,
+        totalScore: 38,
+        mustHavePoints: 25,
+        niceToHavePoints: 0,
+        experiencePoints: 16,
+        locationPoints: 7,
+        capApplied: true,
+        matchedMustHave: ['TypeScript', 'Node.js'],
+        missingMustHave: ['PostgreSQL', 'REST APIs'],
+        matchedNiceToHave: [],
+        rankedSkills: [
+          { skill: 'TypeScript', category: 'MUST_HAVE', points: 12.5 },
+          { skill: 'Node.js', category: 'MUST_HAVE', points: 12.5 },
+        ],
+        cvDocumentVersion: 1,
+        parserVersion: 'textkernel-extract-4.2.1',
       },
     ],
   });

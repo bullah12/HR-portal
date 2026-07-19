@@ -152,6 +152,13 @@ const RULES: RouteRule[] = [
     },
   },
   {
+    pattern: /^\/api\/jobs\/[^/]+\/ranking$/,
+    methods: {
+      // Bias-masked ranking; HMs restricted to own requisitions in-route.
+      GET: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER'],
+    },
+  },
+  {
     pattern: /^\/api\/audit-logs$/,
     methods: {
       GET: ['HR_ADMIN', 'DPO_AUDITOR'],

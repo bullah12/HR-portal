@@ -11,7 +11,8 @@
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:seed": "ts-node prisma/seed.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "consents:expire": "ts-node scripts/expire-consents.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
