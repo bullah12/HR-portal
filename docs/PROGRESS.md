@@ -11,7 +11,7 @@ prompts in docs/FABLE_PROMPTS.md). Updated after every phase.
 | 2 | Real README | ✅ green | see Phase 2 proof below | none |
 | 3 | Close schema ↔ app gaps | ✅ green | see Phase 3 proof below | none |
 | 4 | Tests on critical paths | ✅ green | 58/58 tests pass, see Phase 4 proof | none |
-| 5 | Deploy target + steps | ⏳ pending | — | — |
+| 5 | Deploy target + steps | ✅ green | see Phase 5 proof below | none |
 | 6 | Hardening & deferred | ⏳ pending | — | — |
 
 ## Decisions
@@ -43,6 +43,26 @@ prompts in docs/FABLE_PROMPTS.md). Updated after every phase.
 - **Email delivery never throws** — pipeline actions must not fail on a
   notification error; the delivery outcome is written into the audit
   detail instead.
+
+### Phase 5 decisions
+
+- **Platform: Fly.io** (over Render). Rationale: first-class
+  `release_command` (migrations run on release, never on boot), simple
+  named-volume mounts for the upload dirs, and an eu-central region
+  (fra) matching the EU data-residency framing. Config in `fly.toml`.
+- **Volume mounts at `/app/uploads`** and the upload-dir env vars stay at
+  their relative defaults — the storage code resolves them against cwd
+  (`/app` in the image), so no storage-code change was needed (PLAN.md §8
+  Q7 intent preserved).
+- **Prisma CLI ships inside the runner image** (node_modules/prisma +
+  @prisma) so `npx prisma migrate deploy` runs offline as the release
+  command; `.bin/prisma` is recreated as a symlink because COPY
+  dereferences it.
+- **Dockerfile accepts an optional `build_ca` BuildKit secret** for
+  corporate-proxy CAs during `npm ci`/`prisma generate` (a no-op when not
+  provided). This sandbox's egress proxy required it; normal builds don't.
+- **Single machine** (`min_machines_running = 1`, no scale-out) because
+  uploads are on a local volume.
 
 ### Phase 4 decisions
 
@@ -236,3 +256,40 @@ Production-code changes for testability: **none**.
 Gate re-run after wiring tests into CI: lint ✔, typecheck ✔, build ✔
 (23/23 pages). CI now: install → generate → lint → typecheck → db push →
 test (Postgres service) → build.
+
+### Phase 5 — Deploy target + steps ✅
+
+Local proof (2026-07-19):
+
+```
+$ docker build --secret id=build_ca,src=… -t hr-portal:local .
+build exit: 0        # multi-stage, standalone output
+
+# Release step — migrations from INSIDE the image, fresh hr_portal_prod DB:
+$ docker run --rm -e DATABASE_URL=… hr-portal:local npx prisma migrate deploy
+migrations/
+  └─ 20260719000000_init/  └─ migration.sql
+All migrations have been successfully applied.
+
+# Serving:
+$ docker run -d -p 3100:3000 -e DATABASE_URL=… -e AUTH_SECRET=… hr-portal:local
+$ curl localhost:3100/login                        → 200
+$ POST /api/auth/login (sofia.lindqvist…)          → success:true, JWT issued
+$ GET /api/jobs (auth cookie)                      → seeded jobs returned
+```
+
+Also verified from the host: `prisma migrate deploy` against a fresh
+database applies the baseline cleanly (hr_portal_deploy_check).
+
+Deliverables: `Dockerfile` (multi-stage, standalone, non-root, Prisma CLI
+included for the release command), `.dockerignore`,
+`prisma/migrations/20260719000000_init/` (baselined from the schema) +
+`migration_lock.toml`, `fly.toml` (release_command = migrate deploy,
+volume at /app/uploads, fra region), README "Deployment" section
+(first deploy, release/rollback flow, production env checklist requiring
+generated AUTH_SECRET + both webhook secrets per PLAN.md §8 Q9),
+`output: 'standalone'` in next.config.js.
+
+Gate after all changes: lint ✔ · typecheck ✔ · tests 58/58 ✔ · build ✔.
+Not done (needs your accounts): the actual `fly launch/deploy` — README
+documents the exact commands.

@@ -1,0 +1,44 @@
+# Fly.io deploy config for the HR Portal (docs/PLAN.md §8 Q7: Docker +
+# managed Postgres + persistent volume for uploads).
+#
+# First deploy and the full secrets checklist: README.md "Deployment".
+
+app = "hr-portal"
+primary_region = "fra" # eu-central, matching the EU data-residency framing
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Migrations run on release — before new machines start — never on boot.
+[deploy]
+  release_command = "npx prisma migrate deploy"
+
+[env]
+  APP_BASE_URL = "https://hr-portal.fly.dev"
+  CV_UPLOAD_DIR = "uploads/cv"
+  ONBOARDING_UPLOAD_DIR = "uploads/onboarding"
+
+# Persistent volume for CV + onboarding uploads. Create it once:
+#   fly volumes create hr_portal_uploads --region fra --size 10
+[mounts]
+  source = "hr_portal_uploads"
+  destination = "/app/uploads"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  # Local-disk uploads + no shared session store: run exactly one machine.
+  min_machines_running = 1
+
+[[http_service.checks]]
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "15s"
+  method = "GET"
+  path = "/login"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
