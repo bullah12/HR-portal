@@ -10,7 +10,7 @@ prompts in docs/FABLE_PROMPTS.md). Updated after every phase.
 | 1 | CI quality gate (ESLint + GitHub Actions) | ✅ green | see Phase 1 proof below | none |
 | 2 | Real README | ✅ green | see Phase 2 proof below | none |
 | 3 | Close schema ↔ app gaps | ✅ green | see Phase 3 proof below | none |
-| 4 | Tests on critical paths | ⏳ pending | — | — |
+| 4 | Tests on critical paths | ✅ green | 58/58 tests pass, see Phase 4 proof | none |
 | 5 | Deploy target + steps | ⏳ pending | — | — |
 | 6 | Hardening & deferred | ⏳ pending | — | — |
 
@@ -43,6 +43,20 @@ prompts in docs/FABLE_PROMPTS.md). Updated after every phase.
 - **Email delivery never throws** — pipeline actions must not fail on a
   notification error; the delivery outcome is written into the audit
   detail instead.
+
+### Phase 4 decisions
+
+- **CI disposable Postgres = GitHub Actions `services:` container**
+  (postgres:16), the Actions-native equivalent of a docker-compose
+  service; the local equivalent (`hr_portal_test` DB in the same Docker
+  Postgres) is documented in the README's Testing section.
+- **Integration tests call route handlers directly** (constructing
+  requests with the x-user-* identity headers middleware would inject)
+  rather than booting a Next server; the middleware itself is tested
+  separately by invoking the exported `middleware()` with real signed
+  JWTs. Faster, hermetic, and covers the same contracts.
+- **No production code was changed for testability** — zero refactors
+  needed.
 
 ## Blocked / needs me
 
@@ -180,3 +194,45 @@ Also in this phase: email delivery wired (nodemailer, SMTP_* env-gated,
 sends on interview scheduled / offer sent for signature / offer accepted;
 .env.example updated), schema header comment now points at docs/PLAN.md,
 README demo-accounts + integration table refreshed.
+
+### Phase 4 — Tests on the critical paths ✅
+
+Local run (2026-07-19), `DATABASE_URL` → hr_portal_test:
+
+```
+ Test Files  7 passed (7)
+      Tests  58 passed (58)
+   Duration  ~3.7s
+```
+
+Scenario → file coverage:
+- ATS scorer weights / 40-point cap / determinism / synonym matching /
+  skill ranking → `tests/unit/atsScorer.test.ts`
+- fieldExtractor skills (lexicon + synonyms + whole-word), experience
+  (explicit years + merged date ranges), contact/education/location →
+  `tests/unit/fieldExtractor.test.ts`
+- Webhook HMAC verifiers: Zinc hex + DocuSign base64, incl. the
+  no-secret recorded-not-enforced path and tamper rejection →
+  `tests/unit/webhookSignatures.test.ts`
+- JWT sign/verify round-trip, expiry rejection, wrong-secret/tampered/
+  invalid-role rejection → `tests/unit/auth.test.ts`
+- Full happy path (application → CV upload → parse [idempotent, cap
+  check] → knockout exclusion → interview [local calendar, conflict
+  detection] → scorecard [panelist-only, duplicate 409] → offer
+  [comp-band validation] → sequential approvals [out-of-order 409] →
+  token accept → HIRED + standard 6-task onboarding plan + competing
+  application REJECTED + audit entries) →
+  `tests/integration/pipeline.test.ts`
+- Middleware RBAC: default-deny unruled route, role denial, method
+  denial, identity-header injection + client-header stripping, public
+  token routes, webhook pass-through →
+  `tests/integration/rbac.test.ts`
+- Webhook persistence → async processing → BackgroundCheck transition
+  (CLEAR/CONSIDER), bad-signature 401 with nothing persisted,
+  unknown-check FAILED event, dev-mode unsigned acceptance →
+  `tests/integration/webhooks.test.ts`
+
+Production-code changes for testability: **none**.
+Gate re-run after wiring tests into CI: lint ✔, typecheck ✔, build ✔
+(23/23 pages). CI now: install → generate → lint → typecheck → db push →
+test (Postgres service) → build.
