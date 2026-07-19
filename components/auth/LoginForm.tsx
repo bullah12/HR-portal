@@ -50,7 +50,8 @@ export default function LoginForm() {
     }
 
     storeUser(result.data.user);
-    router.push('/jobs');
+    // DPO auditors have no recruiting pages — their home is the audit log.
+    router.push(result.data.user.role === 'DPO_AUDITOR' ? '/audit' : '/jobs');
     router.refresh();
   }
 

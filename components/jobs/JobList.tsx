@@ -38,6 +38,7 @@ export default function JobList() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     setUser(getStoredUser());
@@ -73,6 +74,36 @@ export default function JobList() {
   }, [statusFilter, router]);
 
   const filters: StatusFilter[] = ['ALL', ...JOB_STATUSES];
+
+  // Forward-only lifecycle actions (mirrors PATCH /api/jobs/[id]).
+  const STATUS_ACTIONS: Partial<Record<JobStatus, Array<{ label: string; to: JobStatus }>>> = {
+    DRAFT: [
+      { label: 'Submit for approval', to: 'PENDING_APPROVAL' },
+      { label: 'Publish', to: 'PUBLISHED' },
+    ],
+    PENDING_APPROVAL: [{ label: 'Publish', to: 'PUBLISHED' }],
+    PUBLISHED: [{ label: 'Close', to: 'CLOSED' }],
+  };
+
+  async function handleStatusChange(job: JobDto, to: JobStatus) {
+    if (to === 'CLOSED' && !window.confirm(`Close "${job.title}"? A closed job can no longer be edited.`)) {
+      return;
+    }
+    setUpdatingId(job.id);
+    setError(null);
+    const result = await apiFetch<JobDto>(`/api/jobs/${job.id}`, { method: 'PATCH', json: { status: to } });
+    setUpdatingId(null);
+    if (!result.ok) {
+      if (result.status === 401) {
+        clearStoredUser();
+        router.push('/login');
+        return;
+      }
+      setError(result.error.message);
+      return;
+    }
+    setJobs((current) => current.map((entry) => (entry.id === job.id ? result.data : entry)));
+  }
 
   return (
     <section className="space-y-4">
@@ -152,6 +183,26 @@ export default function JobList() {
               </span>
               <span>{job.publishedAt ? `Published ${formatDate(job.publishedAt)}` : `Created ${formatDate(job.createdAt)}`}</span>
             </div>
+
+            {user && canManageRecruiting(user.role) && (STATUS_ACTIONS[job.status] ?? []).length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                {(STATUS_ACTIONS[job.status] ?? []).map((action) => (
+                  <button
+                    key={action.to}
+                    type="button"
+                    disabled={updatingId === job.id}
+                    onClick={() => handleStatusChange(job, action.to)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
+                      action.to === 'CLOSED'
+                        ? 'border border-rose-300 text-rose-700 hover:bg-rose-50'
+                        : 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-500'
+                    }`}
+                  >
+                    {updatingId === job.id ? 'Updating…' : action.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </li>
         ))}
       </ul>

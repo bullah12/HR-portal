@@ -20,6 +20,7 @@ import { fetchWithRetry, IntegrationError } from '@/lib/integrations/http';
 import { offerInclude } from '@/lib/offers';
 import { renderOfferPdf } from '@/lib/offerPdf';
 import { notifyOfferSigned } from '@/lib/integrations/slack';
+import { renderOfferSentForSignatureEmail, sendEmail } from '@/lib/email';
 import type { SignatureVerification } from '@/lib/integrations/backgroundCheck';
 
 export class EsignFlowError extends Error {
@@ -127,6 +128,19 @@ export async function sendOfferForSignature(offerId: string, actorUserId: string
     data: { esignEnvelopeId: envelopeId, signatureStatus: 'SENT' },
   });
 
+  // Notify the candidate with the tokenized offer link (dual-mode email:
+  // SMTP when configured, logged locally otherwise; never throws).
+  const baseUrl = (process.env.APP_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+  const delivery = await sendEmail(
+    renderOfferSentForSignatureEmail({
+      candidateName: `${candidate.firstName} ${candidate.lastName}`,
+      candidateEmail: candidate.email,
+      jobTitle: offer.application.job.title,
+      offerUrl: `${baseUrl}/offers?offer=${offer.id}&token=${offer.accessToken}`,
+      expiresAt: offer.expiresAt,
+    }),
+  );
+
   await prisma.auditLog.create({
     data: {
       actorId: actorUserId,
@@ -137,6 +151,7 @@ export async function sendOfferForSignature(offerId: string, actorUserId: string
         envelopeId,
         provider: process.env.DOCUSIGN_BASE_URL ? 'docusign' : 'local',
         signer: candidate.email,
+        emailDelivery: { mode: delivery.mode, delivered: delivery.delivered },
       },
     },
   });

@@ -6,8 +6,8 @@
  *          "view assigned candidate packet only").
  *  - POST: schedule an interview (recruiter/HR admin). Runs panel conflict
  *          detection, creates the calendar event + Teams link (spec
- *          section 6), renders the candidate confirmation email template
- *          (no send — Phase 2b wiring), and audits the action.
+ *          section 6), sends the candidate confirmation email (SMTP when
+ *          configured, logged locally otherwise), and audits the action.
  */
 
 import { NextRequest } from 'next/server';
@@ -17,7 +17,7 @@ import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/auth';
 import { fail, ok } from '@/lib/types';
 import { getCalendarProvider, CalendarError } from '@/lib/calendar';
-import { renderInterviewConfirmationEmail } from '@/lib/email';
+import { renderInterviewConfirmationEmail, sendEmail } from '@/lib/email';
 import { notifyInterviewScheduled } from '@/lib/integrations/slack';
 
 export const runtime = 'nodejs';
@@ -247,6 +247,9 @@ export async function POST(request: NextRequest) {
       panelistNames: panelists.map((panelist) => panelist.name),
     });
 
+    // Dual-mode delivery: SMTP when configured, console log otherwise.
+    const delivery = await sendEmail(email);
+
     await prisma.auditLog.create({
       data: {
         actorId: auth.userId,
@@ -261,6 +264,7 @@ export async function POST(request: NextRequest) {
           calendarEventId: calendarEvent.eventId,
           stageAdvanced,
           emailRendered: true,
+          emailDelivery: { mode: delivery.mode, delivered: delivery.delivered },
           decisionBy: 'human',
         },
       },
@@ -289,8 +293,8 @@ export async function POST(request: NextRequest) {
           eventId: calendarEvent.eventId,
           videoLink: calendarEvent.videoLink,
         },
-        // Rendered template only — delivery via AWS SES arrives in Phase 2b.
         emailPreview: email,
+        emailDelivery: { mode: delivery.mode, delivered: delivery.delivered },
       },
       201,
     );
