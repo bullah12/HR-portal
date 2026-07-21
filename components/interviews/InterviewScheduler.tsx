@@ -19,6 +19,7 @@ import {
   type SessionUser,
 } from '@/lib/client';
 import type { CandidateDto, JobDto } from '@/lib/types';
+import ScorecardSection from '@/components/interviews/ScorecardSection';
 
 interface StaffUser {
   id: string;
@@ -100,6 +101,7 @@ export default function InterviewScheduler() {
   const [submitting, setSubmitting] = useState(false);
   const [lastScheduled, setLastScheduled] = useState<ScheduleResult | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [scorecardsOpenFor, setScorecardsOpenFor] = useState<string | null>(null);
 
   const isRecruiting = user !== null && canManageRecruiting(user.role);
 
@@ -393,49 +395,66 @@ export default function InterviewScheduler() {
         ) : (
           <ul className="space-y-2">
             {interviews.map((interview) => (
-              <li
-                key={interview.id}
-                className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {interview.application.candidate.name}
-                    <span className="font-normal text-slate-500"> — {interview.application.job.title}</span>
-                  </p>
-                  <p className="mt-0.5 text-xs text-slate-500">
-                    {formatSlot(interview.slotStart, interview.slotEnd)} · {interview.type.replaceAll('_', ' ').toLowerCase()} ·
-                    panel: {interview.panelists.map((panelist) => panelist.name).join(', ')}
-                  </p>
-                  {interview.videoLink && interview.status !== 'CANCELLED' && (
-                    <a
-                      href={interview.videoLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-0.5 inline-block truncate text-xs font-medium text-indigo-700 hover:underline"
+              <li key={interview.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {interview.application.candidate.name}
+                      <span className="font-normal text-slate-500"> — {interview.application.job.title}</span>
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {formatSlot(interview.slotStart, interview.slotEnd)} · {interview.type.replaceAll('_', ' ').toLowerCase()} ·
+                      panel: {interview.panelists.map((panelist) => panelist.name).join(', ')}
+                    </p>
+                    {interview.videoLink && interview.status !== 'CANCELLED' && (
+                      <a
+                        href={interview.videoLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-0.5 inline-block truncate text-xs font-medium text-indigo-700 hover:underline"
+                      >
+                        Join video call
+                      </a>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        STATUS_BADGES[interview.status] ?? 'bg-slate-100 text-slate-600'
+                      }`}
                     >
-                      Join video call
-                    </a>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      STATUS_BADGES[interview.status] ?? 'bg-slate-100 text-slate-600'
-                    }`}
-                  >
-                    {interview.status}
-                  </span>
-                  {isRecruiting && ['SCHEDULED', 'RESCHEDULED'].includes(interview.status) && (
+                      {interview.status}
+                    </span>
                     <button
                       type="button"
-                      onClick={() => handleCancel(interview.id)}
-                      disabled={cancellingId === interview.id}
-                      className="rounded-lg border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
+                      onClick={() =>
+                        setScorecardsOpenFor((current) => (current === interview.id ? null : interview.id))
+                      }
+                      className="rounded-lg border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
                     >
-                      {cancellingId === interview.id ? 'Cancelling…' : 'Cancel'}
+                      Scorecards ({interview.scorecardCount})
                     </button>
-                  )}
+                    {isRecruiting && ['SCHEDULED', 'RESCHEDULED'].includes(interview.status) && (
+                      <button
+                        type="button"
+                        onClick={() => handleCancel(interview.id)}
+                        disabled={cancellingId === interview.id}
+                        className="rounded-lg border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
+                      >
+                        {cancellingId === interview.id ? 'Cancelling…' : 'Cancel'}
+                      </button>
+                    )}
+                  </div>
                 </div>
+                {scorecardsOpenFor === interview.id && user && (
+                  <ScorecardSection
+                    interviewId={interview.id}
+                    interviewStatus={interview.status}
+                    panelistIds={interview.panelists.map((panelist) => panelist.id)}
+                    user={user}
+                    onSubmitted={() => void loadInterviews()}
+                  />
+                )}
               </li>
             ))}
           </ul>
