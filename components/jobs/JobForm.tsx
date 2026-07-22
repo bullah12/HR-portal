@@ -145,12 +145,12 @@ export default function JobForm() {
   }
 
   const inputClass = (hasError: boolean) =>
-    `w-full rounded-lg border bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:ring-2 focus:ring-indigo-500 ${
+    `w-full rounded-lg border bg-white px-3 py-2.5 text-sm shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-600/20 ${
       hasError ? 'border-rose-400' : 'border-slate-300'
     }`;
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <form onSubmit={handleSubmit} noValidate className="space-y-5 rounded-card border border-slate-200 bg-white p-5 shadow-card sm:p-6">
       <Field label="Job title" error={fieldErrors.title}>
         <input
           value={form.title}

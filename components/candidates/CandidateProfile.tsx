@@ -142,7 +142,7 @@ export default function CandidateProfile({ candidateId }: { candidateId: string 
         <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
           {error ?? 'Candidate not found.'}
         </p>
-        <Link href="/candidates" className="text-sm font-medium text-indigo-700 hover:underline">
+        <Link href="/candidates" className="text-sm font-semibold text-brand-600 hover:text-brand-700 hover:underline">
           ← Back to candidates
         </Link>
       </div>
@@ -153,14 +153,14 @@ export default function CandidateProfile({ candidateId }: { candidateId: string 
 
   return (
     <div className="space-y-6">
-      <Link href="/candidates" className="text-sm font-medium text-indigo-700 hover:underline">
+      <Link href="/candidates" className="text-sm font-semibold text-brand-600 hover:text-brand-700 hover:underline">
         ← Back to candidates
       </Link>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <section className="rounded-card border border-slate-200 bg-white p-5 shadow-card sm:p-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-xl font-bold text-slate-900">
+            <h1 className="text-title text-slate-950">
               {candidate.firstName} {candidate.lastName}
             </h1>
             <p className="text-sm text-slate-500">{candidate.email}</p>
@@ -196,7 +196,7 @@ export default function CandidateProfile({ candidateId }: { candidateId: string 
         </dl>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <section className="rounded-card border border-slate-200 bg-white p-5 shadow-card sm:p-6">
         <h2 className="text-base font-semibold text-slate-900">Upload CV</h2>
         <p className="mt-1 text-sm text-slate-500">
           PDF or Word document, max 10 MB. Uploading for a job creates or updates the candidate&apos;s application.
@@ -211,7 +211,7 @@ export default function CandidateProfile({ candidateId }: { candidateId: string 
               id="job"
               value={selectedJobId}
               onChange={(event) => setSelectedJobId(event.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-600/20"
             >
               <option value="">Select a job…</option>
               {jobs.map((job) => (
@@ -232,7 +232,7 @@ export default function CandidateProfile({ candidateId }: { candidateId: string 
               type="file"
               accept=".pdf,.doc,.docx"
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-              className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100"
+              className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
             />
           </div>
 

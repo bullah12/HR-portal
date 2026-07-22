@@ -106,7 +106,7 @@ export default function DocumentUpload({ planKey, token, tasks, documents, onUpl
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <section className="rounded-card border border-slate-200 bg-white p-5 shadow-card sm:p-6">
       <h2 className="text-base font-semibold text-slate-900">Documents</h2>
       <p className="mt-1 text-sm text-slate-500">
         Upload your employee data form, tax forms, and signed NDA. PDF, Word, or image files up to 10 MB.
@@ -124,7 +124,7 @@ export default function DocumentUpload({ planKey, token, tasks, documents, onUpl
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="e.g. Tax form"
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-600/20"
             />
             <datalist id="doc-name-suggestions">
               {NAME_SUGGESTIONS.map((suggestion) => (
@@ -141,7 +141,7 @@ export default function DocumentUpload({ planKey, token, tasks, documents, onUpl
               id="doc-task"
               value={taskId}
               onChange={(event) => setTaskId(event.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-600/20"
             >
               <option value="">Not linked to a task</option>
               {documentTasks.map((task) => (
@@ -164,7 +164,7 @@ export default function DocumentUpload({ planKey, token, tasks, documents, onUpl
             type="file"
             accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-            className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100"
+            className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
           />
         </div>
 

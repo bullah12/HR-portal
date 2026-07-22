@@ -83,6 +83,7 @@ export const STATUS_MAP: Record<StatusKind, Record<string, StatusMeta>> = {
     PENDING_APPROVAL: { label: 'Pending approval', tone: 'amber' },
     APPROVED: { label: 'Approved', tone: 'emerald' },
     REJECTED: { label: 'Rejected', tone: 'rose' },
+    EXPIRED: { label: 'Expired', tone: 'slate' },
   },
   // components/offers/OfferCard.tsx — candidateDecision
   candidateDecision: {

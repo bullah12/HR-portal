@@ -20,8 +20,8 @@ interface NavLink {
 }
 
 const NAV_LINKS: NavLink[] = [
+  { href: '/', label: 'Today', roles: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'INTERVIEWER', 'FINANCE_APPROVER', 'DPO_AUDITOR'] },
   { href: '/jobs', label: 'Jobs', roles: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER'] },
-  { href: '/jobs/new', label: 'New job', roles: ['HR_ADMIN', 'RECRUITER'] },
   { href: '/candidates', label: 'Candidates', roles: ['HR_ADMIN', 'RECRUITER'] },
   { href: '/interviews', label: 'Interviews', roles: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'INTERVIEWER'] },
   { href: '/offers', label: 'Offers', roles: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'FINANCE_APPROVER'] },
@@ -58,19 +58,31 @@ export default function Navbar() {
     router.refresh();
   }
 
+  const initials = user.name
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
   const linkClass = (href: string) => {
-    const active = href === '/jobs' ? pathname === '/jobs' : pathname.startsWith(href);
-    return `rounded-lg px-3 py-2 text-sm font-medium transition ${
-      active ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+    const active = href === '/' ? pathname === '/' : href === '/jobs' ? pathname === '/jobs' : pathname.startsWith(href);
+    return `relative rounded-lg px-3 py-2 text-sm font-medium transition ${
+      active
+        ? 'bg-brand-50 text-brand-700 after:absolute after:inset-x-3 after:-bottom-3 after:hidden after:h-0.5 after:rounded-full after:bg-brand-600 sm:after:block'
+        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
     }`;
   };
 
   return (
-    <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
       <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-6">
-          <Link href="/jobs" className="text-base font-bold tracking-tight text-indigo-700">
-            HR Portal
+        <div className="flex min-w-0 items-center gap-7">
+          <Link href="/" className="flex shrink-0 items-center gap-2.5 text-base font-bold tracking-tight text-slate-950">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-xs font-bold tracking-wide text-white shadow-sm">
+              HR
+            </span>
+            <span className="hidden lg:inline">HR Portal</span>
           </Link>
           <div className="hidden items-center gap-1 sm:flex">
             {visibleLinks.map((link) => (
@@ -83,10 +95,13 @@ export default function Navbar() {
 
         <div className="hidden items-center gap-3 sm:flex">
           <div className="text-right">
-            <p className="text-sm font-medium text-slate-800">{user.name}</p>
-            <p className="text-xs text-slate-500">{ROLE_LABELS[user.role]}</p>
+            <p className="text-sm font-semibold text-slate-800">{user.name}</p>
+            <p className="text-xs text-slate-400">{ROLE_LABELS[user.role]}</p>
           </div>
-          <Button variant="secondary" size="sm" onClick={handleLogout} disabled={loggingOut}>
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
+            {initials}
+          </div>
+          <Button variant="ghost" size="sm" onClick={handleLogout} disabled={loggingOut}>
             {loggingOut ? 'Signing out…' : 'Sign out'}
           </Button>
         </div>
@@ -110,7 +125,7 @@ export default function Navbar() {
       </nav>
 
       {menuOpen && (
-        <div className="border-t border-slate-200 px-4 pb-4 pt-2 sm:hidden">
+        <div className="border-t border-slate-200 bg-white px-4 pb-4 pt-2 sm:hidden">
           <div className="flex flex-col gap-1">
             {visibleLinks.map((link) => (
               <Link key={link.href} href={link.href} className={linkClass(link.href)}>
@@ -123,7 +138,7 @@ export default function Navbar() {
               <p className="text-sm font-medium text-slate-800">{user.name}</p>
               <p className="text-xs text-slate-500">{ROLE_LABELS[user.role]}</p>
             </div>
-            <Button variant="secondary" size="sm" onClick={handleLogout} disabled={loggingOut}>
+            <Button variant="ghost" size="sm" onClick={handleLogout} disabled={loggingOut}>
               {loggingOut ? 'Signing out…' : 'Sign out'}
             </Button>
           </div>

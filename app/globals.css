@@ -18,9 +18,15 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    @apply bg-slate-50;
+  }
   body {
     @apply bg-slate-50 text-slate-900 antialiased;
     font-family: var(--font-sans, 'IBM Plex Sans'), system-ui, sans-serif;
+  }
+  ::selection {
+    @apply bg-brand-100 text-brand-700;
   }
   /* Consistent visible focus for keyboard users across the app. */
   :focus-visible {

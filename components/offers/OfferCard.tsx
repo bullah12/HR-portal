@@ -105,10 +105,10 @@ export default function OfferCard(props: OfferCardProps) {
     }
 
     return (
-      <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <article className="rounded-card border border-slate-200 bg-white p-5 shadow-card transition hover:border-brand-100 hover:shadow-sm">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h3 className="text-base font-semibold text-slate-900">{offer.application.candidate.name}</h3>
+            <h3 className="text-section text-slate-950">{offer.application.candidate.name}</h3>
             <p className="text-sm text-slate-500">{offer.application.job.title}</p>
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -174,12 +174,12 @@ export default function OfferCard(props: OfferCardProps) {
             href={`/api/offers/${offer.id}/pdf`}
             target="_blank"
             rel="noreferrer"
-            className="font-medium text-indigo-700 hover:underline"
+            className="font-semibold text-brand-600 hover:text-brand-700 hover:underline"
           >
             Offer letter (PDF)
           </a>
           {offer.approvalState === 'APPROVED' && offer.candidateDecision === 'PENDING' && (
-            <button type="button" onClick={copyLink} className="font-medium text-indigo-700 hover:underline">
+            <button type="button" onClick={copyLink} className="font-semibold text-brand-600 hover:text-brand-700 hover:underline">
               {copied ? 'Copied ✓' : 'Copy candidate link'}
             </button>
           )}
@@ -207,7 +207,7 @@ export default function OfferCard(props: OfferCardProps) {
   }
 
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <article className="rounded-card border border-slate-200 bg-white p-6 shadow-card">
       <p className="text-sm text-slate-500">Offer of employment for</p>
       <h2 className="text-xl font-bold text-slate-900">{offer.candidateName}</h2>
       <p className="mt-1 text-sm text-slate-600">
@@ -247,7 +247,7 @@ export default function OfferCard(props: OfferCardProps) {
           {offer.onboardingToken && (
             <a
               href={`/onboarding/${offer.onboardingToken}`}
-              className="mt-2 inline-block rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500"
+              className="mt-2 inline-block rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
             >
               Start your onboarding
             </a>

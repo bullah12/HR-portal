@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   CTX_HEADERS,
   extractToken,
+  STAFF_ROLES,
   verifyAuthToken,
   type StaffRole,
 } from '@/lib/auth';
@@ -40,6 +41,7 @@ const PUBLIC_TOKEN_ROUTES: Array<{ pattern: RegExp; methods: string[]; needsToke
 
 /** Roles allowed to create jobs and manage candidate records. */
 const RECRUITING_WRITE: StaffRole[] = ['HR_ADMIN', 'RECRUITER'];
+const ALL_STAFF: StaffRole[] = [...STAFF_ROLES];
 
 interface RouteRule {
   pattern: RegExp;
@@ -48,6 +50,12 @@ interface RouteRule {
 }
 
 const RULES: RouteRule[] = [
+  {
+    pattern: /^\/api\/today$/,
+    methods: {
+      GET: ALL_STAFF,
+    },
+  },
   {
     pattern: /^\/api\/jobs$/,
     methods: {
@@ -160,6 +168,7 @@ const RULES: RouteRule[] = [
 // visitors are redirected to /login; authenticated users without the role
 // land on /jobs when they can see it, otherwise /login.
 const PAGE_RULES: Array<{ pattern: RegExp; roles: StaffRole[] }> = [
+  { pattern: /^\/$/, roles: ALL_STAFF },
   { pattern: /^\/jobs\/new$/, roles: RECRUITING_WRITE },
   { pattern: /^\/jobs(\/.*)?$/, roles: ['HR_ADMIN', 'RECRUITER', 'HIRING_MANAGER'] },
   { pattern: /^\/candidates(\/.*)?$/, roles: RECRUITING_WRITE },
@@ -255,5 +264,5 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/jobs/:path*', '/candidates/:path*', '/interviews/:path*'],
+  matcher: ['/', '/api/:path*', '/jobs/:path*', '/candidates/:path*', '/interviews/:path*'],
 };
