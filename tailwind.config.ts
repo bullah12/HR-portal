@@ -37,9 +37,6 @@ const config: Config = {
         card: '0 1px 2px 0 rgba(15,23,42,0.05)',
         float: '0 20px 40px -24px rgba(15,23,42,0.35)',
       },
-      ringColor: {
-        brand: '#4f46e5',
-      },
     },
   },
   plugins: [],
