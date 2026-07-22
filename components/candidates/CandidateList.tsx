@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import PageHeader from '@/components/ui/PageHeader';
+import StatusPill from '@/components/ui/StatusPill';
 import { apiFetch, clearStoredUser, formatDate } from '@/lib/client';
 import type { CandidateDto } from '@/lib/types';
 
@@ -15,13 +17,6 @@ const SOURCE_LABELS: Record<string, string> = {
   REFERRAL: 'Referral',
   AGENCY: 'Agency',
   DIRECT_SOURCING: 'Direct sourcing',
-};
-
-const CONSENT_BADGES: Record<string, string> = {
-  GRANTED: 'bg-emerald-100 text-emerald-800',
-  PENDING: 'bg-amber-100 text-amber-800',
-  WITHDRAWN: 'bg-rose-100 text-rose-700',
-  EXPIRED: 'bg-slate-100 text-slate-600',
 };
 
 const COLUMNS: Array<{ key: SortKey; label: string }> = [
@@ -101,129 +96,139 @@ export default function CandidateList() {
     return sortDirection === 'asc' ? ' ↑' : ' ↓';
   }
 
+  const header = (
+    <PageHeader
+      title="Candidates"
+      count={candidates.length}
+      subtitle="Everyone in the pipeline, with consent status at a glance."
+    />
+  );
+
   if (loading) {
-    return <p className="py-10 text-center text-sm text-slate-500">Loading candidates…</p>;
+    return (
+      <>
+        {header}
+        <p className="py-10 text-center text-sm text-slate-500">Loading candidates…</p>
+      </>
+    );
   }
 
   if (error) {
     return (
-      <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-        {error}
-      </p>
+      <>
+        {header}
+        <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          {error}
+        </p>
+      </>
     );
   }
 
   if (candidates.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-500">
-        No candidates yet.
-      </p>
+      <>
+        {header}
+        <p className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-500">
+          No candidates yet.
+        </p>
+      </>
     );
   }
 
   return (
-    <section>
-      {/* Desktop: sortable table */}
-      <div className="hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:block">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              {COLUMNS.map((column) => (
-                <th key={column.key} className="px-4 py-3">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort(column.key)}
-                    className="font-semibold hover:text-slate-800"
-                  >
-                    {column.label}
-                    {sortIndicator(column.key)}
-                  </button>
-                </th>
-              ))}
-              <th className="px-4 py-3 font-semibold">Consent</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {sorted.map((candidate) => (
-              <tr key={candidate.id} className="transition hover:bg-indigo-50/40">
-                <td className="px-4 py-3">
-                  <Link href={`/candidates/${candidate.id}`} className="font-medium text-indigo-700 hover:underline">
-                    {candidate.firstName} {candidate.lastName}
-                  </Link>
-                  <p className="text-xs text-slate-500">{candidate.email}</p>
-                </td>
-                <td className="px-4 py-3 text-slate-600">{SOURCE_LABELS[candidate.source] ?? candidate.source}</td>
-                <td className="px-4 py-3 text-slate-600">{candidate.applicationCount}</td>
-                <td className="px-4 py-3 text-slate-600">{formatDate(candidate.createdAt)}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      CONSENT_BADGES[candidate.consentStatus] ?? 'bg-slate-100 text-slate-600'
-                    }`}
-                  >
-                    {candidate.consentStatus}
-                  </span>
-                </td>
+    <div>
+      {header}
+      <section>
+        {/* Desktop: sortable table */}
+        <div className="hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:block">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                {COLUMNS.map((column) => (
+                  <th key={column.key} className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(column.key)}
+                      className="font-semibold hover:text-slate-800"
+                    >
+                      {column.label}
+                      {sortIndicator(column.key)}
+                    </button>
+                  </th>
+                ))}
+                <th className="px-4 py-3 font-semibold">Consent</th>
               </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {sorted.map((candidate) => (
+                <tr key={candidate.id} className="transition hover:bg-indigo-50/40">
+                  <td className="px-4 py-3">
+                    <Link href={`/candidates/${candidate.id}`} className="font-medium text-indigo-700 hover:underline">
+                      {candidate.firstName} {candidate.lastName}
+                    </Link>
+                    <p className="text-xs text-slate-500">{candidate.email}</p>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">{SOURCE_LABELS[candidate.source] ?? candidate.source}</td>
+                  <td className="px-4 py-3 text-slate-600">{candidate.applicationCount}</td>
+                  <td className="px-4 py-3 text-slate-600">{formatDate(candidate.createdAt)}</td>
+                  <td className="px-4 py-3">
+                    <StatusPill kind="consent" value={candidate.consentStatus} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile: cards with a sort selector */}
+        <div className="space-y-3 md:hidden">
+          <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
+            Sort by
+            <select
+              value={`${sortKey}:${sortDirection}`}
+              onChange={(event) => {
+                const [key, direction] = event.target.value.split(':') as [SortKey, SortDirection];
+                setSortKey(key);
+                setSortDirection(direction);
+              }}
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs"
+            >
+              <option value="createdAt:desc">Newest first</option>
+              <option value="createdAt:asc">Oldest first</option>
+              <option value="name:asc">Name A–Z</option>
+              <option value="name:desc">Name Z–A</option>
+              <option value="applicationCount:desc">Most applications</option>
+              <option value="source:asc">Source</option>
+            </select>
+          </label>
+
+          <ul className="space-y-3">
+            {sorted.map((candidate) => (
+              <li key={candidate.id}>
+                <Link
+                  href={`/candidates/${candidate.id}`}
+                  className="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-indigo-300"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-medium text-slate-900">
+                      {candidate.firstName} {candidate.lastName}
+                    </p>
+                    <StatusPill kind="consent" value={candidate.consentStatus} />
+                  </div>
+                  <p className="mt-0.5 text-xs text-slate-500">{candidate.email}</p>
+                  <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+                    <span>{SOURCE_LABELS[candidate.source] ?? candidate.source}</span>
+                    <span>
+                      {candidate.applicationCount} application{candidate.applicationCount === 1 ? '' : 's'} ·{' '}
+                      {formatDate(candidate.createdAt)}
+                    </span>
+                  </div>
+                </Link>
+              </li>
             ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mobile: cards with a sort selector */}
-      <div className="space-y-3 md:hidden">
-        <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
-          Sort by
-          <select
-            value={`${sortKey}:${sortDirection}`}
-            onChange={(event) => {
-              const [key, direction] = event.target.value.split(':') as [SortKey, SortDirection];
-              setSortKey(key);
-              setSortDirection(direction);
-            }}
-            className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs"
-          >
-            <option value="createdAt:desc">Newest first</option>
-            <option value="createdAt:asc">Oldest first</option>
-            <option value="name:asc">Name A–Z</option>
-            <option value="name:desc">Name Z–A</option>
-            <option value="applicationCount:desc">Most applications</option>
-            <option value="source:asc">Source</option>
-          </select>
-        </label>
-
-        <ul className="space-y-3">
-          {sorted.map((candidate) => (
-            <li key={candidate.id}>
-              <Link
-                href={`/candidates/${candidate.id}`}
-                className="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-indigo-300"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-medium text-slate-900">
-                    {candidate.firstName} {candidate.lastName}
-                  </p>
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      CONSENT_BADGES[candidate.consentStatus] ?? 'bg-slate-100 text-slate-600'
-                    }`}
-                  >
-                    {candidate.consentStatus}
-                  </span>
-                </div>
-                <p className="mt-0.5 text-xs text-slate-500">{candidate.email}</p>
-                <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-                  <span>{SOURCE_LABELS[candidate.source] ?? candidate.source}</span>
-                  <span>
-                    {candidate.applicationCount} application{candidate.applicationCount === 1 ? '' : 's'} ·{' '}
-                    {formatDate(candidate.createdAt)}
-                  </span>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
+          </ul>
+        </div>
+      </section>
+    </div>
   );
 }

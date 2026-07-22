@@ -11,6 +11,8 @@
  */
 
 import { useState } from 'react';
+import Button from '@/components/ui/Button';
+import StatusPill from '@/components/ui/StatusPill';
 import { apiFetch } from '@/lib/client';
 
 export interface StaffOffer {
@@ -56,17 +58,6 @@ export interface CandidateOffer {
 type OfferCardProps =
   | { mode: 'staff'; offer: StaffOffer; currentUserId: string; onChanged: () => void }
   | { mode: 'candidate'; offer: CandidateOffer; token: string; onDecided: () => void };
-
-const DECISION_BADGES: Record<string, string> = {
-  PENDING: 'bg-amber-100 text-amber-800',
-  ACCEPTED: 'bg-emerald-100 text-emerald-800',
-  DECLINED: 'bg-rose-100 text-rose-700',
-  APPROVED: 'bg-emerald-100 text-emerald-800',
-  REJECTED: 'bg-rose-100 text-rose-700',
-  PENDING_APPROVAL: 'bg-amber-100 text-amber-800',
-  DRAFT: 'bg-slate-100 text-slate-600',
-  EXPIRED: 'bg-slate-100 text-slate-500',
-};
 
 function money(amount: number, currency: string): string {
   return new Intl.NumberFormat('en-IE', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount);
@@ -121,12 +112,8 @@ export default function OfferCard(props: OfferCardProps) {
             <p className="text-sm text-slate-500">{offer.application.job.title}</p>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${DECISION_BADGES[offer.approvalState] ?? 'bg-slate-100 text-slate-600'}`}>
-              {offer.approvalState.replaceAll('_', ' ')}
-            </span>
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${DECISION_BADGES[offer.candidateDecision] ?? 'bg-slate-100 text-slate-600'}`}>
-              Candidate: {offer.candidateDecision}
-            </span>
+            <StatusPill kind="offerApproval" value={offer.approvalState} />
+            <StatusPill kind="candidateDecision" value={offer.candidateDecision} prefix="Candidate" />
           </div>
         </div>
 
@@ -157,9 +144,7 @@ export default function OfferCard(props: OfferCardProps) {
           <ul className="mt-1.5 space-y-1">
             {offer.approvals.map((approval) => (
               <li key={approval.sequence} className="flex items-center gap-2 text-sm text-slate-700">
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${DECISION_BADGES[approval.decision] ?? 'bg-slate-100 text-slate-600'}`}>
-                  {approval.decision}
-                </span>
+                <StatusPill kind="offerApproval" value={approval.decision} />
                 {approval.sequence}. {approval.approver.name}
                 <span className="text-xs text-slate-400">({approval.approver.role.replaceAll('_', ' ').toLowerCase()})</span>
               </li>
@@ -168,22 +153,12 @@ export default function OfferCard(props: OfferCardProps) {
 
           {myPendingStep && !earlierBlocked && offer.approvalState === 'PENDING_APPROVAL' && (
             <div className="mt-3 flex gap-2">
-              <button
-                type="button"
-                onClick={() => decide('APPROVED')}
-                disabled={busy}
-                className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
-              >
+              <Button size="sm" onClick={() => decide('APPROVED')} disabled={busy}>
                 Approve
-              </button>
-              <button
-                type="button"
-                onClick={() => decide('REJECTED')}
-                disabled={busy}
-                className="rounded-lg border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"
-              >
+              </Button>
+              <Button variant="danger" size="sm" onClick={() => decide('REJECTED')} disabled={busy}>
                 Reject
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -294,22 +269,12 @@ export default function OfferCard(props: OfferCardProps) {
 
       {offer.readyToDecide && (
         <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-          <button
-            type="button"
-            onClick={() => respond('ACCEPTED')}
-            disabled={busy}
-            className="flex-1 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
-          >
+          <Button onClick={() => respond('ACCEPTED')} disabled={busy} className="flex-1 py-2.5">
             {busy ? 'Working…' : 'Accept offer'}
-          </button>
-          <button
-            type="button"
-            onClick={() => respond('DECLINED')}
-            disabled={busy}
-            className="flex-1 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-          >
+          </Button>
+          <Button variant="secondary" onClick={() => respond('DECLINED')} disabled={busy} className="flex-1 py-2.5">
             Decline
-          </button>
+          </Button>
         </div>
       )}
 

@@ -1,3 +1,29 @@
+/*
+ * Option A (quickest): keep this @import and the app uses IBM Plex from the CDN.
+ * Option B (recommended for prod): delete the @import below and instead load the
+ * fonts via next/font in app/layout.tsx so they self-host and set the CSS vars:
+ *
+ *   import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
+ *   const sans = IBM_Plex_Sans({ subsets: ['latin'], weight: ['400','500','600','700'], variable: '--font-sans' });
+ *   const mono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400','500','600'], variable: '--font-mono' });
+ *   // <html className={`${sans.variable} ${mono.variable}`}>
+ *
+ * tailwind.config.ts already points font-sans/font-mono at those vars, with
+ * IBM Plex + system fallbacks so nothing breaks if the vars are absent.
+ */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+    font-family: var(--font-sans, 'IBM Plex Sans'), system-ui, sans-serif;
+  }
+  /* Consistent visible focus for keyboard users across the app. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-600 ring-offset-2 ring-offset-white;
+  }
+}

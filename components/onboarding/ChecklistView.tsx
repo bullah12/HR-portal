@@ -6,6 +6,9 @@
  * (spec: "editable by HR, viewable by candidate").
  */
 
+import StatusPill from '@/components/ui/StatusPill';
+import { resolveStatus } from '@/lib/status';
+
 export interface ChecklistTask {
   id: string;
   title: string;
@@ -25,20 +28,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   IT_PROVISIONING: 'IT provisioning',
   TRAINING: 'Training',
   OTHER: 'Other',
-};
-
-const STATUS_BADGES: Record<string, string> = {
-  PENDING: 'bg-slate-100 text-slate-600',
-  IN_PROGRESS: 'bg-sky-100 text-sky-800',
-  COMPLETED: 'bg-emerald-100 text-emerald-800',
-  BLOCKED: 'bg-rose-100 text-rose-700',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: 'Pending',
-  IN_PROGRESS: 'In progress',
-  COMPLETED: 'Completed',
-  BLOCKED: 'Blocked',
 };
 
 const STATUS_OPTIONS = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED'];
@@ -124,18 +113,12 @@ export default function ChecklistView({
                         >
                           {STATUS_OPTIONS.map((status) => (
                             <option key={status} value={status}>
-                              {STATUS_LABELS[status]}
+                              {resolveStatus('onboardingTask', status).label}
                             </option>
                           ))}
                         </select>
                       ) : (
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            STATUS_BADGES[task.status] ?? 'bg-slate-100 text-slate-600'
-                          }`}
-                        >
-                          {STATUS_LABELS[task.status] ?? task.status}
-                        </span>
+                        <StatusPill kind="onboardingTask" value={task.status} />
                       )}
                     </div>
                   </li>

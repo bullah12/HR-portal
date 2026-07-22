@@ -12,6 +12,7 @@
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import OfferCard, { type CandidateOffer, type StaffOffer } from '@/components/offers/OfferCard';
+import PageHeader from '@/components/ui/PageHeader';
 import { apiFetch, clearStoredUser, getStoredUser } from '@/lib/client';
 
 function CandidateOfferView({ offerId, token }: { offerId: string; token: string }) {
@@ -88,36 +89,46 @@ function StaffOffersView() {
     void load();
   }, [load]);
 
+  const header = (
+    <PageHeader
+      title="Offers"
+      count={offers.length}
+      subtitle="Approval chains, offer letters, and candidate acceptance links."
+    />
+  );
+
   if (loading) {
-    return <p className="py-10 text-center text-sm text-slate-500">Loading offers…</p>;
+    return (
+      <>
+        {header}
+        <p className="py-10 text-center text-sm text-slate-500">Loading offers…</p>
+      </>
+    );
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900">Offers</h1>
-        <p className="mt-0.5 text-sm text-slate-500">
-          Approval chains, offer letters, and candidate acceptance links.
-        </p>
+    <div>
+      {header}
+
+      <div className="space-y-4">
+        {error && (
+          <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            {error}
+          </p>
+        )}
+
+        {offers.length === 0 && !error ? (
+          <p className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-500">
+            No offers yet.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {offers.map((offer) => (
+              <OfferCard key={offer.id} mode="staff" offer={offer} currentUserId={currentUserId} onChanged={load} />
+            ))}
+          </div>
+        )}
       </div>
-
-      {error && (
-        <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-          {error}
-        </p>
-      )}
-
-      {offers.length === 0 && !error ? (
-        <p className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-500">
-          No offers yet.
-        </p>
-      ) : (
-        <div className="space-y-4">
-          {offers.map((offer) => (
-            <OfferCard key={offer.id} mode="staff" offer={offer} currentUserId={currentUserId} onChanged={load} />
-          ))}
-        </div>
-      )}
     </div>
   );
 }

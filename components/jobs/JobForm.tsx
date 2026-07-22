@@ -2,6 +2,7 @@
 
 import { FormEvent, ReactNode, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Button from '@/components/ui/Button';
 import { apiFetch, clearStoredUser } from '@/lib/client';
 import type { JobDto } from '@/lib/types';
 
@@ -266,20 +267,12 @@ export default function JobForm() {
       )}
 
       <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
-        <button
-          type="button"
-          onClick={() => router.push('/jobs')}
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-        >
+        <Button variant="secondary" onClick={() => router.push('/jobs')}>
           Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        </Button>
+        <Button type="submit" disabled={submitting}>
           {submitting ? 'Creating…' : 'Create job'}
-        </button>
+        </Button>
       </div>
     </form>
   );

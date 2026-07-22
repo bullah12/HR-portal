@@ -8,6 +8,8 @@
 
 import { FormEvent, useRef, useState } from 'react';
 import type { ChecklistTask } from '@/components/onboarding/ChecklistView';
+import Button from '@/components/ui/Button';
+import StatusPill from '@/components/ui/StatusPill';
 
 export interface OnboardingDocumentMeta {
   id: string;
@@ -31,18 +33,6 @@ interface DocumentUploadProps {
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg'];
-
-const DOCUMENT_STATUS_BADGES: Record<string, string> = {
-  PENDING_REVIEW: 'bg-amber-100 text-amber-800',
-  APPROVED: 'bg-emerald-100 text-emerald-800',
-  REJECTED: 'bg-rose-100 text-rose-700',
-};
-
-const DOCUMENT_STATUS_LABELS: Record<string, string> = {
-  PENDING_REVIEW: 'Pending review',
-  APPROVED: 'Approved',
-  REJECTED: 'Rejected',
-};
 
 const NAME_SUGGESTIONS = ['Employee data form', 'Tax form', 'NDA (signed)', 'Employment contract (signed)', 'Right-to-work document'];
 
@@ -184,13 +174,9 @@ export default function DocumentUpload({ planKey, token, tasks, documents, onUpl
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={uploading}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <Button type="submit" disabled={uploading}>
           {uploading ? 'Uploading…' : 'Upload document'}
-        </button>
+        </Button>
       </form>
 
       {documents.length > 0 && (
@@ -206,13 +192,7 @@ export default function DocumentUpload({ planKey, token, tasks, documents, onUpl
                   Uploaded {formatWhen(document.uploadedAt)} · {formatSize(document.sizeBytes)}
                 </p>
               </div>
-              <span
-                className={`self-start rounded-full px-2.5 py-0.5 text-xs font-medium sm:self-auto ${
-                  DOCUMENT_STATUS_BADGES[document.status] ?? 'bg-slate-100 text-slate-600'
-                }`}
-              >
-                {DOCUMENT_STATUS_LABELS[document.status] ?? document.status}
-              </span>
+              <StatusPill kind="documentReview" value={document.status} className="self-start sm:self-auto" />
             </li>
           ))}
         </ul>

@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Button from '@/components/ui/Button';
 import { apiFetch, storeUser } from '@/lib/client';
 import type { LoginResponseData } from '@/lib/types';
 
@@ -101,13 +102,9 @@ export default function LoginForm() {
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <Button type="submit" disabled={submitting} className="w-full py-2.5">
         {submitting ? 'Signing in…' : 'Sign in'}
-      </button>
+      </Button>
     </form>
   );
 }

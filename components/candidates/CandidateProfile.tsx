@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useRef, useState } from 'react';
+import Button from '@/components/ui/Button';
+import StatusPill from '@/components/ui/StatusPill';
 import { apiFetch, clearStoredUser, formatDate } from '@/lib/client';
 import type { CandidateDto, CvUploadResponseData, JobDto } from '@/lib/types';
 
@@ -15,13 +17,6 @@ const SOURCE_LABELS: Record<string, string> = {
   REFERRAL: 'Referral',
   AGENCY: 'Agency',
   DIRECT_SOURCING: 'Direct sourcing',
-};
-
-const CONSENT_BADGES: Record<string, string> = {
-  GRANTED: 'bg-emerald-100 text-emerald-800',
-  PENDING: 'bg-amber-100 text-amber-800',
-  WITHDRAWN: 'bg-rose-100 text-rose-700',
-  EXPIRED: 'bg-slate-100 text-slate-600',
 };
 
 export default function CandidateProfile({ candidateId }: { candidateId: string }) {
@@ -170,13 +165,7 @@ export default function CandidateProfile({ candidateId }: { candidateId: string 
             </h1>
             <p className="text-sm text-slate-500">{candidate.email}</p>
           </div>
-          <span
-            className={`self-start rounded-full px-3 py-1 text-xs font-medium ${
-              CONSENT_BADGES[candidate.consentStatus] ?? 'bg-slate-100 text-slate-600'
-            }`}
-          >
-            Consent: {candidate.consentStatus}
-          </span>
+          <StatusPill kind="consent" value={candidate.consentStatus} prefix="Consent" className="self-start" />
         </div>
 
         <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
@@ -253,13 +242,9 @@ export default function CandidateProfile({ candidateId }: { candidateId: string 
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={uploading}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          <Button type="submit" disabled={uploading}>
             {uploading ? 'Uploading…' : 'Upload CV'}
-          </button>
+          </Button>
         </form>
 
         {uploads.length > 0 && (

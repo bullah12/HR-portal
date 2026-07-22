@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Button from '@/components/ui/Button';
 import {
   apiFetch,
   clearStoredUser,
@@ -66,7 +67,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <nav className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
+      <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         <div className="flex items-center gap-6">
           <Link href="/jobs" className="text-base font-bold tracking-tight text-indigo-700">
             HR Portal
@@ -85,14 +86,9 @@ export default function Navbar() {
             <p className="text-sm font-medium text-slate-800">{user.name}</p>
             <p className="text-xs text-slate-500">{ROLE_LABELS[user.role]}</p>
           </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
-          >
+          <Button variant="secondary" size="sm" onClick={handleLogout} disabled={loggingOut}>
             {loggingOut ? 'Signing out…' : 'Sign out'}
-          </button>
+          </Button>
         </div>
 
         {/* Mobile menu toggle */}
@@ -127,14 +123,9 @@ export default function Navbar() {
               <p className="text-sm font-medium text-slate-800">{user.name}</p>
               <p className="text-xs text-slate-500">{ROLE_LABELS[user.role]}</p>
             </div>
-            <button
-              type="button"
-              onClick={handleLogout}
-              disabled={loggingOut}
-              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-60"
-            >
+            <Button variant="secondary" size="sm" onClick={handleLogout} disabled={loggingOut}>
               {loggingOut ? 'Signing out…' : 'Sign out'}
-            </button>
+            </Button>
           </div>
         </div>
       )}
