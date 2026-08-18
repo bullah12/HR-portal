@@ -4,10 +4,10 @@ An internal hiring platform covering the full pipeline from job posting to
 first-day onboarding, with GDPR consent tracking and an append-only audit
 log throughout.
 
-This document was reverse-engineered from the codebase (2026-07-19 audit) —
-the project was built without a committed spec. The Prisma schema references
-a `docs/hr-portal-spec.md` that was never committed; this file now serves as
-the documented spec and phase plan. Phase prompts live in
+This document was reverse-engineered from the codebase (2026-07-19 audit).
+The durable product requirements recovered from the original pipeline-design
+work are documented in `docs/hr-portal-spec.md`; this file records the
+implementation audit and phase plan. Phase prompts live in
 `docs/FABLE_PROMPTS.md`.
 
 > **⚠️ INTEGRATIONS ARE UNVERIFIED AGAINST REAL PROVIDERS**
@@ -220,8 +220,9 @@ Prisma/PostgreSQL. **No placeholder/mock data exists anywhere in the UI.**
      `CLOSED` and the DRAFT→PUBLISHED transition are unreachable via API.
    - Minor: no `GET /api/candidates/[id]` detail route (profile page
      assembles its view from list endpoints).
-7. **Referenced spec doc missing** — `prisma/schema.prisma` cites
-   `docs/hr-portal-spec.md`; this PLAN.md now stands in for it.
+7. **Product spec restored** — the product requirements referenced by
+   `prisma/schema.prisma` now live in `docs/hr-portal-spec.md`; keep that spec
+   focused on durable intent and use this plan for implementation status.
 
 ---
 
@@ -319,6 +320,6 @@ Exit criteria per phase are written into the prompts in
    Phase 6 adds a startup warning when they're unset outside development.
 
 10. **What replaces the missing `docs/hr-portal-spec.md`?**
-    **RESOLVED — this document.** Update the schema comment to point at
-    `docs/PLAN.md` during Phase 3 (one-line change, bundled with that
-    phase's schema-adjacent work).
+    **RESOLVED — the recovered product specification.** Durable product
+    requirements now live in `docs/hr-portal-spec.md`; this document remains
+    the implementation audit and delivery roadmap.
